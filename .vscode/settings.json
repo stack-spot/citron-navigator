@@ -1,0 +1,19 @@
+{
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true
+  },
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "editor.rulers": [140],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "typescript.preferences.quoteStyle": "single",
+  "typescript.preferences.jsxAttributeCompletionStyle": "none",
+  "javascript.format.semicolons": "remove",
+  "typescript.format.semicolons": "remove",
+  "cSpell.words": [
+    "Subroute"
+  ],
+}

@@ -1,0 +1,12 @@
++ root (/):
+  propagate create: string ('studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application')
+  + studios (/studios):
+    like: string
+    limit: number
+    + studio (/{studioId}):
+      + stacks (/stacks):
+        tech: array (string[])
+        + stack (/{stackId}):
+          + starters (/starters):
+            + starter (/{starterId}):
+              + account (/account):

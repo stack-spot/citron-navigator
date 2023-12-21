@@ -1,0 +1,11 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "command": "pnpm test",
+      "name": "Run test",
+      "request": "launch",
+      "type": "node-terminal"
+    }
+  ]
+}
