@@ -9,7 +9,7 @@
     "test": "pnpm --filter @stack-spot/citron-navigator-cli test",
     "build:cli": "pnpm --filter @stack-spot/citron-navigator-cli build",
     "build:runtime": "pnpm --filter @stack-spot/citron-navigator build",
-    "build": "pnpm build:cli && build:cli"
+    "build": "pnpm build:cli && build:runtime"
   },
   "engines": {
     "node": ">=18",
