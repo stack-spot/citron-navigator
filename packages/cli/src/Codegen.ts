@@ -71,7 +71,10 @@ export class Codegen {
   private writeImports() {
     this.code.push(`
       import { useEffect } from 'react'
-      import { Route, CitronNavigator, ContextualizedRoute, NavigationClauses, LinkedList, compareRouteKeysDesc } from '@stack-spot/citron-navigator'
+      import { Route, CitronNavigator } from '@stack-spot/citron-navigator'
+      import { ContextualizedRoute, NavigationClauses } from '@stack-spot/citron-navigator/dist/types'
+      import { LinkedList } from '@stack-spot/citron-navigator/dist/LinkedList'
+      import { compareRouteKeysDesc } from '@stack-spot/citron-navigator/dist/utils'
     `)
   }
 

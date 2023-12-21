@@ -17,7 +17,7 @@ function removeTrailingSlashes(str: string) {
 }
 
 function uri(baseDir: string | undefined, path: string) {
-  return `${removeTrailingSlashes(baseDir ?? '')}/${removeTrailingSlashes(path)}`
+  return baseDir ? `${removeTrailingSlashes(baseDir ?? '')}/${removeTrailingSlashes(path)}` : path
 }
 
 export async function generate({ src, out, baseDir }: ProgramArguments) {

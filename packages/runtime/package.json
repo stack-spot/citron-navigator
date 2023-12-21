@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "rollup -c",
+    "build": "tsc --declaration",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "peerDependencies": {
@@ -25,10 +25,6 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
-    "esbuild": "^0.18.16",
-    "rollup": "^3.26.3",
-    "rollup-plugin-dts": "^5.3.0",
-    "rollup-plugin-esbuild": "^5.0.0",
     "typescript": "^5.2.2"
   }
 }
