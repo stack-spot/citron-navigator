@@ -24,8 +24,13 @@ export abstract class Route<
     this.$paramMetadata = paramMetadata
   }
 
-  $go(params: Record<string, never> extends Params ? void | Params : Params) {
-    history.pushState({}, '', this.$link(params))
+  $go(params: Record<string, never> extends Params ? void | Params : Params, replace = false) {
+    const operation = replace ? 'replaceState' : 'pushState'
+    history[operation]({}, '', this.$link(params))
+  }
+
+  $clearSearchParams() {
+    history.replaceState({}, '', location.href.replace(/\?.*/, ''))
   }
 
   $link(params: Record<string, never> extends Params ? void | Params : Params): string {
@@ -40,7 +45,8 @@ export abstract class Route<
     if (CitronNavigator.instance?.useHash) url.hash = `#${path}`
     Object.keys(this.$paramMetadata).forEach((key) => {
       if (urlParams.includes(key)) return
-      const value = parameters[key]
+      // we use params instead of parameters because we don't want to propagate the search params from the parent
+      const value = (params ?? {})[key]
       if (value !== undefined && value !== null) {
         const serialized = typeof value === 'object' ? JSON.stringify(value) : value
         url.searchParams.set(key, serialized)

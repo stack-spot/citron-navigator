@@ -25,7 +25,7 @@ export class CitronNavigator {
   }
 
   getPath(url: URL = new URL(location.toString())) {
-    return this.useHash ? url.hash.replace(/^\/?#\/?/, '') : url.pathname
+    return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname
   }
 
   private locationHandler() {
@@ -122,8 +122,9 @@ export class CitronNavigator {
   }
 
   private extractQueryParams(url: URL) {
+    const params = this.useHash ? new URLSearchParams(url.hash.replace(/[^?]*\??/, '')) : url.searchParams
     const result: Record<string, any> = {}
-    url.searchParams.forEach((value, key) => {
+    params.forEach((value, key) => {
       result[key] = this.deserializeUrlParam(key, value)
     })
     return result
