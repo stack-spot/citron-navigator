@@ -20,15 +20,15 @@ export class CitronNavigator {
     this.root = root
     this.currentRoute = root
     this.useHash = useHash
-    window.addEventListener('popstate', () => this.locationHandler())
-    this.locationHandler()
+    window.addEventListener('popstate', () => this.updateRoute())
+    this.updateRoute()
   }
 
   getPath(url: URL = new URL(location.toString())) {
     return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname
   }
 
-  private locationHandler() {
+  updateRoute() {
     const route = this.findRouteByPath(this.root, this.getPath())
     if (route) this.handleRouteChange(route)
     else this.handleNotFound()
