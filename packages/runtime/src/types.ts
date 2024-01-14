@@ -30,3 +30,5 @@ export interface NavigationClauses {
   enforceAllViews?: boolean,
   initialized?: boolean,
 }
+
+export type AnyRouteWithParams<Params extends Record<string, any>> = Route<Route<any, any>, Params, string>
