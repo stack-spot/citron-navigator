@@ -166,7 +166,7 @@ export class Codegen {
         return context
       }
 
-      export function useNavigationContext(navigationHandler: (context: NavigationContext) => void) {  
+      export function useNavigationContext(navigationHandler: (context: NavigationContext) => void, deps?: any[]) {  
         useEffect(() => {
           const clauses: NavigationClauses = { when: {}, whenSubrouteOf: new LinkedList(compareRouteKeysDesc) }
           navigationHandler(buildContext(clauses))
@@ -187,6 +187,8 @@ export class Codegen {
             if (clauses.otherwise) clauses.otherwise()
           })
         }, [])
+
+        useEffect(() => navigator.updateRoute(), deps ?? [])
 
         return navigationHandler
       }
