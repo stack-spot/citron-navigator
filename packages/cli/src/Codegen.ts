@@ -70,8 +70,8 @@ export class Codegen {
 
   private writeImports() {
     this.code.push(`
-      import { useEffect } from 'react'
-      import { Route, CitronNavigator } from '@stack-spot/citron-navigator'
+      import { useEffect, useState } from 'react'
+      import { Route, CitronNavigator, AnyRouteWithParams } from '@stack-spot/citron-navigator'
       import { ContextualizedRoute, NavigationClauses } from '@stack-spot/citron-navigator/dist/types'
       import { LinkedList } from '@stack-spot/citron-navigator/dist/LinkedList'
       import { compareRouteKeysDesc } from '@stack-spot/citron-navigator/dist/utils'
@@ -191,6 +191,17 @@ export class Codegen {
         useEffect(() => navigator.updateRoute(), deps ?? [])
 
         return navigationHandler
+      }
+
+      interface RouteData<T extends keyof RouteParams> {
+        route: AnyRouteWithParams<Partial<RouteParams[T]>>,
+        params: Partial<RouteParams[T]>,
+      }
+      
+      export function useRouteData<T extends keyof RouteParams>(key?: T): RouteData<T> {
+        const [data, setData] = useState<RouteData<any>>({ route: navigator.currentRoute, params: navigator.currentParams })
+        useEffect(() => navigator.onRouteChange((route, params) => setData({ route, params })), [])
+        return data as RouteData<T>
       }
     `)
   }
