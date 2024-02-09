@@ -198,7 +198,7 @@ export class Codegen {
         params: Partial<RouteParams[T]>,
       }
       
-      export function useRouteData<T extends keyof RouteParams>(key?: T): RouteData<T> {
+      export function useRouteData<T extends keyof RouteParams>(_key?: T): RouteData<T> {
         const [data, setData] = useState<RouteData<any>>({ route: navigator.currentRoute, params: navigator.currentParams })
         useEffect(() => navigator.onRouteChange((route, params) => setData({ route, params })), [])
         return data as RouteData<T>
