@@ -136,7 +136,7 @@ export class CitronNavigator {
     const urlParts = splitPath(this.getPath(url))
     routeParts.forEach((value, index) => {
       const [, key] = value.match(/\{(\w+)\}/) ?? []
-      if (key) result[key] = this.deserializeUrlParam(key, urlParts[index])
+      if (key) result[key] = this.deserializeUrlParam(key, decodeURIComponent(urlParts[index]))
     })
     return result
   }
