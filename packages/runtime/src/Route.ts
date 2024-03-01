@@ -1,5 +1,4 @@
 import { CitronNavigator } from './CitronNavigator'
-import { RouteParamError } from './errors'
 import { splitPath } from './utils'
 
 type ParamType = 'string' | 'number' | 'boolean' | 'array' | 'object'
@@ -67,7 +66,6 @@ export abstract class Route<
     const parameters: Record<string, any> = { ...CitronNavigator.instance?.currentParams, ...params }
     const urlParams: string[] = []
     const path = this.$path.replace(/\{(\w+)\}/g, (_, match) => {
-      if (!(match in parameters)) throw new RouteParamError(this, match)
       urlParams.push(match)
       return parameters[match]
     })

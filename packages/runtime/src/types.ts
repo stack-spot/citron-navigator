@@ -20,14 +20,15 @@ export type ContextualizedRoute<T, CurrentParams extends Record<string, any> | v
   ) 
   : undefined
 
+export type VoidOrPromise = void | Promise<void>
+
 export interface NavigationClauses {
-  when: Record<string, (props: any) => void>,
+  when: Record<string, (props: any) => VoidOrPromise>,
   whenSubrouteOf: LinkedList<{
     key: string,
-    handler: (props: any) => void,
+    handler: (props: any) => VoidOrPromise,
   }>,
-  otherwise?: () => void,
-  enforceAllViews?: boolean,
+  otherwise?: () => VoidOrPromise,
   initialized?: boolean,
 }
 

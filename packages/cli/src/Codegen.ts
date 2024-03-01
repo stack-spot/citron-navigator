@@ -72,7 +72,7 @@ export class Codegen {
     this.code.push(`
       import { useEffect, useState } from 'react'
       import { Route, CitronNavigator, AnyRouteWithParams } from '@stack-spot/citron-navigator'
-      import { ContextualizedRoute, NavigationClauses } from '@stack-spot/citron-navigator/dist/types'
+      import { ContextualizedRoute, NavigationClauses, VoidOrPromise } from '@stack-spot/citron-navigator/dist/types'
       import { LinkedList } from '@stack-spot/citron-navigator/dist/LinkedList'
       import { compareRouteKeysDesc } from '@stack-spot/citron-navigator/dist/utils'
     `)
@@ -134,10 +134,9 @@ export class Codegen {
         : { route: ContextualizedRoute<RouteByKey[T], RouteParams[T]>, params: RouteParams[T] }
 
       interface NavigationContext {
-          when: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => void) => NavigationContext,
-          whenSubrouteOf: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => void) => NavigationContext,
-          otherwise: (handler: () => void) => NavigationContext,
-          enforceAllViews: () => NavigationContext,
+        when: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+        whenSubrouteOf: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+        otherwise: (handler: () => VoidOrPromise) => NavigationContext,
       }
 
       function buildContext(clauses: NavigationClauses) {
@@ -152,14 +151,9 @@ export class Codegen {
           },
           otherwise: (handler) => {
             if (clauses.otherwise) {
-              // eslint-disable-next-line no-console
               console.warn('Navigation: "otherwise" has been set more than once for the hook "useNavigationContext". Only the last handler will take effect.')
             }
             clauses.otherwise = handler
-            return context
-          },
-          enforceAllViews: () => {
-            clauses.enforceAllViews = true
             return context
           },
         }
@@ -170,21 +164,18 @@ export class Codegen {
         useEffect(() => {
           const clauses: NavigationClauses = { when: {}, whenSubrouteOf: new LinkedList(compareRouteKeysDesc) }
           navigationHandler(buildContext(clauses))
-          if (clauses.enforceAllViews) {
-            // todo: certify every view will have a handler (ignoring "otherwise").
-          }
-          return navigator.onRouteChange((route, params) => {
+          return navigator.onRouteChangeAsync(async (route, params) => {
             const when = Object.keys(clauses.when).find(key => route.$is(key))
             if (when) {
-              clauses.when[when]({ route, params })
+              await clauses.when[when]({ route, params })
               return
             }
             const whenSubroute = clauses.whenSubrouteOf.find(({ key }) => route.$isSubrouteOf(key))
             if (whenSubroute) {
-              whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params })
+              await whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params })
               return
             }
-            if (clauses.otherwise) clauses.otherwise()
+            if (clauses.otherwise) await clauses.otherwise()
           })
         }, [])
 

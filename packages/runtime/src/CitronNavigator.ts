@@ -4,11 +4,13 @@ import { removeElementFromArray, splitPath } from './utils'
 
 type NotFoundListener = (path: string) => void
 type RouteChangeListener = (route: Route, params: Record<string, any>) => void
+type AsyncRouteChangeListener = (route: Route, params: Record<string, any>) => Promise<void> | void
 
 export class CitronNavigator {
   private root: Route
   private notFoundListeners: NotFoundListener[] = []
   private routeChangeListeners: RouteChangeListener[] = []
+  private asyncRouteChangeListeners: AsyncRouteChangeListener[] = []
   currentRoute: Route
   currentParams: Record<string, any> = {}
   useHash: boolean
@@ -52,10 +54,11 @@ export class CitronNavigator {
     }
   }
 
-  private handleRouteChange(route: Route) {
+  private async handleRouteChange(route: Route) {
     this.currentRoute = route
     const url = new URL(location.toString())
     this.currentParams = { ...this.extractQueryParams(url), ...this.extractUrlParams(url) }
+    await Promise.all(this.asyncRouteChangeListeners.map(l => l(route, this.currentParams)))
     this.routeChangeListeners.forEach(l => l(route, this.currentParams))
   }
 
@@ -141,12 +144,21 @@ export class CitronNavigator {
     return result
   }
 
-  onRouteChange(listener: RouteChangeListener): () => void {
-    this.routeChangeListeners.push(listener)
+  private addRouteChangeListener(listener: AsyncRouteChangeListener, isAsync: boolean): () => void {
+    const list = isAsync ? this.asyncRouteChangeListeners : this.routeChangeListeners
+    list.push(listener)
     listener(this.currentRoute, this.currentParams)
     return () => {
-      removeElementFromArray(this.routeChangeListeners, listener)
+      removeElementFromArray(list, listener)
     }
+  }
+
+  onRouteChange(listener: RouteChangeListener): () => void {
+    return this.addRouteChangeListener(listener, false)
+  }
+
+  onRouteChangeAsync(listener: AsyncRouteChangeListener): () => void {
+    return this.addRouteChangeListener(listener, true)
   }
 
   onNotFound(listener: NotFoundListener): () => void {
