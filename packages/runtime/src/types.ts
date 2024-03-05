@@ -29,6 +29,7 @@ export interface NavigationClauses {
     handler: (props: any) => VoidOrPromise,
   }>,
   otherwise?: () => VoidOrPromise,
+  whenNotFound?: (path: string) => VoidOrPromise,
   initialized?: boolean,
 }
 

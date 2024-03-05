@@ -11,7 +11,7 @@ export class CitronNavigator {
   private notFoundListeners: NotFoundListener[] = []
   private routeChangeListeners: RouteChangeListener[] = []
   private asyncRouteChangeListeners: AsyncRouteChangeListener[] = []
-  currentRoute: Route
+  currentRoute: Route | undefined
   currentParams: Record<string, any> = {}
   useHash: boolean
   static readonly instance: CitronNavigator
@@ -20,7 +20,6 @@ export class CitronNavigator {
     // @ts-ignore
     CitronNavigator.instance = this
     this.root = root
-    this.currentRoute = root
     this.useHash = useHash
     window.addEventListener('popstate', () => this.updateRoute())
     this.updateRoute()
@@ -147,7 +146,7 @@ export class CitronNavigator {
   private addRouteChangeListener(listener: AsyncRouteChangeListener, isAsync: boolean): () => void {
     const list = isAsync ? this.asyncRouteChangeListeners : this.routeChangeListeners
     list.push(listener)
-    listener(this.currentRoute, this.currentParams)
+    if (this.currentRoute) listener(this.currentRoute, this.currentParams)
     return () => {
       removeElementFromArray(list, listener)
     }

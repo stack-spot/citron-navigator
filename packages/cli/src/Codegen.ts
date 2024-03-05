@@ -137,6 +137,7 @@ export class Codegen {
         when: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
         whenSubrouteOf: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
         otherwise: (handler: () => VoidOrPromise) => NavigationContext,
+        whenNotFound: (handler: (path: string) => VoidOrPromise) => NavigationContext,
       }
 
       function buildContext(clauses: NavigationClauses) {
@@ -156,6 +157,13 @@ export class Codegen {
             clauses.otherwise = handler
             return context
           },
+          whenNotFound: (handler) => {
+            if (clauses.otherwise) {
+              console.warn('Navigation: "whenNotFound" has been set more than once for the hook "useNavigationContext". Only the last handler will take effect.')
+            }
+            clauses.whenNotFound = handler
+            return context
+          },
         }
         return context
       }
@@ -164,7 +172,7 @@ export class Codegen {
         useEffect(() => {
           const clauses: NavigationClauses = { when: {}, whenSubrouteOf: new LinkedList(compareRouteKeysDesc) }
           navigationHandler(buildContext(clauses))
-          return navigator.onRouteChangeAsync(async (route, params) => {
+          const stopListeningToRouteChanges = navigator.onRouteChangeAsync(async (route, params) => {
             const when = Object.keys(clauses.when).find(key => route.$is(key))
             if (when) {
               await clauses.when[when]({ route, params })
@@ -177,6 +185,11 @@ export class Codegen {
             }
             if (clauses.otherwise) await clauses.otherwise()
           })
+          const stopListeningToNotFoundEvents = clauses.whenNotFound ? navigator.onNotFound(clauses.whenNotFound) : undefined
+          return () => {
+            stopListeningToRouteChanges()
+            stopListeningToNotFoundEvents?.()
+          }
         }, [])
 
         useEffect(() => navigator.updateRoute(), deps ?? [])
@@ -190,7 +203,7 @@ export class Codegen {
       }
       
       export function useRouteData<T extends keyof RouteParams>(_key?: T): RouteData<T> {
-        const [data, setData] = useState<RouteData<any>>({ route: navigator.currentRoute, params: navigator.currentParams })
+        const [data, setData] = useState<RouteData<any>>({ route: navigator.currentRoute ?? root as any, params: navigator.currentParams })
         useEffect(() => navigator.onRouteChange((route, params) => setData({ route, params })), [])
         return data as RouteData<T>
       }
