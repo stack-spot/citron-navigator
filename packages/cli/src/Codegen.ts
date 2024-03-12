@@ -70,7 +70,7 @@ export class Codegen {
 
   private writeImports() {
     this.code.push(`
-      import { useEffect, useState } from 'react'
+      import { useCallback, useEffect, useRef, useState } from 'react'
       import { Route, CitronNavigator, AnyRouteWithParams } from '@stack-spot/citron-navigator'
       import { ContextualizedRoute, NavigationClauses, VoidOrPromise } from '@stack-spot/citron-navigator/dist/types'
       import { LinkedList } from '@stack-spot/citron-navigator/dist/LinkedList'
@@ -169,21 +169,36 @@ export class Codegen {
       }
 
       export function useNavigationContext(navigationHandler: (context: NavigationContext) => void, deps?: any[]) {  
+        const queue = useRef<(() => VoidOrPromise)[]>([])
+        const consumer = useRef<Promise<void> | undefined>()
+
+        const runEveryHandlerInQueue = useCallback(async () => {
+          while (queue.current.length) {
+            const handler = queue.current.shift()
+            await handler?.()
+          }
+          consumer.current = undefined
+        }, [])
+
+        const consume = useCallback(() => {
+          consumer.current ??= runEveryHandlerInQueue()
+          return consumer.current
+        }, [])
+
         useEffect(() => {
           const clauses: NavigationClauses = { when: {}, whenSubrouteOf: new LinkedList(compareRouteKeysDesc) }
           navigationHandler(buildContext(clauses))
           const stopListeningToRouteChanges = navigator.onRouteChangeAsync(async (route, params) => {
             const when = Object.keys(clauses.when).find(key => route.$is(key))
-            if (when) {
-              await clauses.when[when]({ route, params })
-              return
+            if (when) queue.current.push(() => clauses.when[when]({ route, params }))
+            else {
+              const whenSubroute = clauses.whenSubrouteOf.find(({ key }) => route.$isSubrouteOf(key))
+              if (whenSubroute) {
+                queue.current.push(() => whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params }))
+              }
+              else if (clauses.otherwise) queue.current.push(clauses.otherwise)
             }
-            const whenSubroute = clauses.whenSubrouteOf.find(({ key }) => route.$isSubrouteOf(key))
-            if (whenSubroute) {
-              await whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params })
-              return
-            }
-            if (clauses.otherwise) await clauses.otherwise()
+            await consume()
           })
           const stopListeningToNotFoundEvents = clauses.whenNotFound ? navigator.onNotFound(clauses.whenNotFound) : undefined
           return () => {
