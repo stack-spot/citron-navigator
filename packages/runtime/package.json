@@ -1,11 +1,11 @@
 {
   "name": "@stack-spot/citron-navigator",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc --declaration",
+    "build": "tsc --declaration && tsc-esm-fix --target='dist'",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "peerDependencies": {
@@ -25,6 +25,7 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
+    "tsc-esm-fix": "^2.20.26",
     "typescript": "^5.2.2"
   }
 }
