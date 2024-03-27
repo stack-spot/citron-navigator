@@ -219,7 +219,9 @@ export class Codegen {
             )
             if (when) queue.current.push(() => clauses.when[when]({ route, params }))
             else {
-              const whenSubroute = clauses.whenSubrouteOf.find(({ key }) => route.$isSubrouteOf(key))
+              const whenSubroute = clauses.whenSubrouteOf.find(
+                ({ key }) => route.$isSubrouteOf(${this.isModule ? 'localToGlobalKeyMap[key as keyof typeof localToGlobalKeyMap]': 'key'}),
+              )
               if (whenSubroute) {
                 queue.current.push(() => whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params }))
               }
