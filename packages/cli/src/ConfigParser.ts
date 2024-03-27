@@ -8,6 +8,7 @@ interface Pair {
 
 const PARAM_NAME_REGEX = /^[A-z_]\w*$/
 const VALID_TYPES = ['string', 'number', 'boolean', 'array', 'object']
+const LINKED_ROUTE_REGEX = /^\+ (\w+) ~ (\w+(?:\.\w+)*) \(([^)]+)\)\s*$/ // + name ~ reference (path)
 
 export class ConfigParser {
   private config: string
@@ -68,7 +69,7 @@ export class ConfigParser {
     }, [])
   }
 
-  private parseChildren(rawRoute: any, route: RouteConfig): RouteConfig[] {
+  private parseChildren(rawRoute: any, route?: RouteConfig): RouteConfig[] {
     if (!rawRoute) return []
     return Object.keys(rawRoute).reduce<RouteConfig[]>((result, current) => {
       const pair = { key: current, value: rawRoute[current] }
@@ -99,7 +100,25 @@ export class ConfigParser {
     return [...inheritedQuery, ...ownQuery]
   }
 
+  private parseRouteLink({ key, value }: Pair, parent: RouteConfig | undefined): RouteConfig {
+    if (parent) throw new Error('Invalid route link: route links (~) can only appear at the root level.')
+    const [, name, link, path] = key.match(LINKED_ROUTE_REGEX) ?? []
+    if (!path.startsWith('/')) throw new Error(`Invalid path: ${path}. Paths must start with "/".`)
+    const params = this.parseParams(value)
+    const pathObject = this.parsePath(path, params)
+    const route: RouteConfig = {
+      key: name,
+      name,
+      link,
+      path: pathObject,
+      query: this.getQueryParams(params, name, pathObject, parent),
+    }
+    route.children = this.parseChildren(value, route)
+    return route
+  }
+
   private parseRoute({ key, value }: Pair, parent: RouteConfig | undefined): RouteConfig {
+    if (key.match(LINKED_ROUTE_REGEX)) return this.parseRouteLink({ key, value }, parent)
     const [, name, path] = key.match(/^\+ (\w+) \(([^)]+)\)\s*$/) ?? [] // + name (path)
     if (!name || !path) throw new Error(`Invalid route key: ${key}. Expected format: + name (path).`)
     if (!path.startsWith('/')) throw new Error(`Invalid path: ${path}. Paths must start with "/".`)

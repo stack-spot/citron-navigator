@@ -95,10 +95,19 @@ export class Codegen {
 
   private writeRootAndNavigatorConstants() {
     const root = this.routes[0]
-    this.code.push(`
-      export const ${root.name} = new ${this.keyToClassName.get(root.key)}()
-      export const navigator = new CitronNavigator(${root.name} as unknown as Route) // fixme
-    `)
+    this.code.push(`export const ${root.name} = new ${this.keyToClassName.get(root.key)}()`)
+    if (root.link) {
+      this.code.push(`
+        if (CitronNavigator.instance) {
+          CitronNavigator.instance.update(${root.name}, '${root.link}')
+        } else {
+          new CitronNavigator(${root.name} as unknown as Route)
+        }
+        export const navigator = CitronNavigator.instance!
+      `)
+    } else {
+      this.code.push(`export const navigator = new CitronNavigator(${root.name} as unknown as Route)`)
+    }
   }
 
   private writeRouteByKeyInterface() {

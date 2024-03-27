@@ -13,6 +13,7 @@ export interface RouteConfig {
   name: string,
   key: string,
   path: PathObject[],
+  link?: string,
   query?: Parameter[],
   parent?: RouteConfig,
   children?: RouteConfig[],

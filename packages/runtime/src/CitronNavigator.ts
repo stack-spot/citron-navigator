@@ -25,6 +25,16 @@ export class CitronNavigator {
     this.updateRoute()
   }
 
+  update(route: Route<any, any, any>, keyToReplace: string) {
+    let oldRoute: any = this.root
+    keyToReplace.split('.').forEach(key => oldRoute = oldRoute?.[key])
+    if (!oldRoute) {
+      throw new Error(`Navigation error: cannot update navigation tree at route with key "${parent}" because the key doesn't exist.`)
+    }
+    route.$parent = oldRoute.$parent
+    oldRoute.$parent[keyToReplace] = route
+  }
+
   getPath(url: URL = new URL(location.toString())) {
     return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname
   }

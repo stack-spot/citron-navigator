@@ -1,4 +1,4 @@
-+ root (/):
++ root ~ root.account (/account):
   propagate create: string ('studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application')
   + studios (/studios):
     like: string
