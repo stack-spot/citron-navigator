@@ -11,9 +11,16 @@ export type PathObject = string | Parameter
 
 export interface RouteConfig {
   name: string,
-  key: string,
+  /**
+   * Key used for references in the local project.
+   */
+  localKey: string,
+  /**
+   * Key used for references in the global project.
+   * If this is not a module of a bigger project, will be the same as `localKey`.
+   */
+  globalKey: string,
   path: PathObject[],
-  link?: string,
   query?: Parameter[],
   parent?: RouteConfig,
   children?: RouteConfig[],
@@ -23,4 +30,9 @@ export interface ProgramArguments {
   src: string,
   out: string,
   baseDir?: string,
+}
+
+export interface Config {
+  root: RouteConfig,
+  isModule: boolean,
 }

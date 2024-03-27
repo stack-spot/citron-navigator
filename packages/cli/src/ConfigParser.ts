@@ -1,5 +1,5 @@
 import { parse } from 'yaml'
-import { JSType, Parameter, PathObject, RouteConfig } from './types'
+import { Config, JSType, Parameter, PathObject, RouteConfig } from './types'
 
 interface Pair {
   key: string,
@@ -8,7 +8,7 @@ interface Pair {
 
 const PARAM_NAME_REGEX = /^[A-z_]\w*$/
 const VALID_TYPES = ['string', 'number', 'boolean', 'array', 'object']
-const LINKED_ROUTE_REGEX = /^\+ (\w+) ~ (\w+(?:\.\w+)*) \(([^)]+)\)\s*$/ // + name ~ reference (path)
+const MODULAR_ROUTE_REGEX = /^\+ (\w+) ~ (\w+(?:\.\w+)*) \(([^)]+)\)\s*$/ // + name ~ reference (path)
 
 export class ConfigParser {
   private config: string
@@ -100,16 +100,16 @@ export class ConfigParser {
     return [...inheritedQuery, ...ownQuery]
   }
 
-  private parseRouteLink({ key, value }: Pair, parent: RouteConfig | undefined): RouteConfig {
-    if (parent) throw new Error('Invalid route link: route links (~) can only appear at the root level.')
-    const [, name, link, path] = key.match(LINKED_ROUTE_REGEX) ?? []
+  private parseRouteModule({ key, value }: Pair, parent: RouteConfig | undefined): RouteConfig {
+    if (parent) throw new Error('Invalid route module: route modules (~) can only appear at the root level.')
+    const [, name, ref, path] = key.match(MODULAR_ROUTE_REGEX) ?? []
     if (!path.startsWith('/')) throw new Error(`Invalid path: ${path}. Paths must start with "/".`)
     const params = this.parseParams(value)
     const pathObject = this.parsePath(path, params)
     const route: RouteConfig = {
-      key: name,
+      localKey: name,
+      globalKey: ref,
       name,
-      link,
       path: pathObject,
       query: this.getQueryParams(params, name, pathObject, parent),
     }
@@ -118,11 +118,11 @@ export class ConfigParser {
   }
 
   private parseRoute({ key, value }: Pair, parent: RouteConfig | undefined): RouteConfig {
-    if (key.match(LINKED_ROUTE_REGEX)) return this.parseRouteLink({ key, value }, parent)
+    if (key.match(MODULAR_ROUTE_REGEX)) return this.parseRouteModule({ key, value }, parent)
     const [, name, path] = key.match(/^\+ (\w+) \(([^)]+)\)\s*$/) ?? [] // + name (path)
     if (!name || !path) throw new Error(`Invalid route key: ${key}. Expected format: + name (path).`)
     if (!path.startsWith('/')) throw new Error(`Invalid path: ${path}. Paths must start with "/".`)
-    const routeKey = parent ? `${parent.key}.${name}` : name
+    const routeKey = parent ? `${parent.localKey}.${name}` : name
     if (this.routeKeys.includes(routeKey)) {
       throw new Error(`Duplicated route: "${routeKey}".`)
     }
@@ -130,7 +130,8 @@ export class ConfigParser {
     const params = this.parseParams(value)
     const ownPath = this.parsePath(path, params)
     const route: RouteConfig = {
-      key: routeKey,
+      localKey: routeKey,
+      globalKey: parent ? `${parent.globalKey}.${name}` : name,
       name,
       path: [...(parent?.path ?? []), ...ownPath],
       query: this.getQueryParams(params, routeKey, ownPath, parent),
@@ -140,12 +141,15 @@ export class ConfigParser {
     return route
   }
 
-  parse(): RouteConfig {
+  parse(): Config {
     const yaml = parse(this.config)
     const keys = Object.keys(yaml)
     if (keys.length !== 1) {
       throw new Error('Invalid format. Expected a single route at the root level.')
     }
-    return this.parseRoute({ key: keys[0], value: yaml[keys[0]] }, undefined)
+    return {
+      root: this.parseRoute({ key: keys[0], value: yaml[keys[0]] }, undefined),
+      isModule: MODULAR_ROUTE_REGEX.test(keys[0]),
+    }
   }
 }
