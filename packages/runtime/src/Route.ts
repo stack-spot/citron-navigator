@@ -35,6 +35,8 @@ interface GoOptions {
   preventDefault?: boolean,
 }
 
+export type AnyRoute = Route<any, any, any>
+
 export abstract class Route<
   Parent extends Route<any, any> | undefined = Route<any, any>,
   Params extends Record<string, any> | void = Record<string, any>,
@@ -125,5 +127,18 @@ export abstract class Route<
     const path = CitronNavigator.instance?.getPath()
     const match = this.$match(path)
     return path !== undefined && (match === 'subroute' || match === 'exact')
+  }
+
+  /**
+   * Returns the branch that starts at the root node and ends in this route.
+   * 
+   * @returns an array of routes where the first is the root node and the last is this route.
+   */
+  $getBranch() {
+    const branch: AnyRoute[] = [this]
+    while (branch[branch.length - 1].$parent) {
+      branch.push(branch[branch.length - 1].$parent)
+    }
+    return branch.reverse()
   }
 }
