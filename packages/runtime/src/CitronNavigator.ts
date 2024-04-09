@@ -25,6 +25,23 @@ export class CitronNavigator {
     this.updateRoute()
   }
 
+  updateNavigationTree(route: Route<any, any, any>, keyToReplace: string) {
+    let oldRoute: any = this.root
+    const reminderKey = keyToReplace.replace(new RegExp(`^${this.root.$key}\\.?`), '')
+    const keyParts = reminderKey.split('.')
+    if (reminderKey) keyParts.forEach(key => oldRoute = oldRoute?.[key])
+    if (!oldRoute) {
+      throw new Error(`Navigation error: cannot update navigation tree at route with key "${keyToReplace}" because the key doesn't exist.`)
+    }
+    if (oldRoute === this.root) {
+      this.root = oldRoute
+    } else {
+      route.$parent = oldRoute.$parent
+      oldRoute.$parent[keyParts[keyParts.length - 1]] = route
+    }
+    this.updateRoute()
+  }
+
   getPath(url: URL = new URL(location.toString())) {
     return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname
   }
@@ -49,7 +66,7 @@ export class CitronNavigator {
         return this.childrenOf(route).reduce<Route | undefined>(
           (result, child) => result ?? this.findRouteByPath(child, path),
           undefined,
-        )
+        ) ?? (route.$path.endsWith('*') ? route : undefined)
     }
   }
 
