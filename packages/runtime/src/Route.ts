@@ -67,7 +67,7 @@ export abstract class Route<
   $link(params: Record<string, never> extends Params ? void | Params : Params, options?: LinkOptions): string {
     const parameters: Record<string, any> = { ...CitronNavigator.instance?.currentParams, ...params }
     const urlParams: string[] = []
-    const path = this.$path.replace(/\{(\w+)\}/g, (_, match) => {
+    const path = this.$path.replace(/\/\*$/, '').replace(/\{(\w+)\}/g, (_, match) => {
       urlParams.push(match)
       return parameters[match]
     })
@@ -100,20 +100,21 @@ export abstract class Route<
   /**
    * @param path the path to test this route against
    * @returns
-   * - `no-match` if this route and the path passed as parameter are not related;
-   * - `exact` if the path passed as parameter corresponds to this route;
-   * - `subroute` if the path passed as parameter corresponds to a subroute of this route;
+   * - `no-match` if this route and the path passed as parameter are not related.
+   * - `exact` if the path passed as parameter corresponds to this route; wildcards will always match as exact.
+   * - `subroute` if the path passed as parameter corresponds to a subroute of this route.
    * - `super-route` if the path passed as parameter corresponds to a super-route of this route.
    */
   $match(path: string): 'no-match' | 'exact' | 'subroute' | 'super-route' {
     const thatPathParts = splitPath(path)
-    const thisPathParts = splitPath(this.$path)
+    const thisPathParts = splitPath(this.$path.replace(/\/\*$/, ''))
     const min = Math.min(thisPathParts.length, thatPathParts.length)
     for (let i = 0; i < min; i++) {
       const isUrlParam = !!thisPathParts[i].match(/\{\w+\}/)
       if (!isUrlParam && thatPathParts[i] !== thisPathParts[i]) return 'no-match'
     }
-    if (thisPathParts.length < thatPathParts.length) return 'subroute'
+    const isWildcard = this.$path.endsWith('/*')
+    if (!isWildcard && thisPathParts.length < thatPathParts.length) return 'subroute'
     if (thisPathParts.length > thatPathParts.length) return 'super-route'
     return 'exact'
   }

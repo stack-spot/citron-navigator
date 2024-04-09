@@ -1,16 +1,20 @@
 import { mkdir, writeFile } from 'fs/promises'
 import { dirname } from 'path'
 import { processString as formatTSFile } from 'typescript-formatter'
-import { RouteConfig } from './types'
+import { Config, RouteConfig } from './types'
 
 export class Codegen {
   private routes: RouteConfig[]
+  private root: RouteConfig
   private code: string[] = []
   private keyToClassName: Map<string, string> = new Map()
+  private isModule: boolean
 
-  constructor(root: RouteConfig) {
+  constructor({ root, isModule }: Config) {
+    this.isModule = isModule
+    this.root = root
     this.routes = this.getRouteList(root)
-    this.routes.forEach(r => this.createClassName(r.key))
+    this.routes.forEach(r => this.createClassName(r.localKey))
     this.write()
   }
 
@@ -53,17 +57,21 @@ export class Codegen {
   }
 
   private getRouteClass(route: RouteConfig) {
-    const name = this.keyToClassName.get(route.key)
-    const parentName = route.parent ? this.keyToClassName.get(route.parent.key) : 'undefined'
+    const name = this.keyToClassName.get(route.localKey)
+    const parentName = route.parent ? this.keyToClassName.get(route.parent.localKey) : 'undefined'
     const params = route.parent ? `parent: ${parentName}` : ''
     const path = route.path.map(p => typeof p === 'string' ? p : `{${p.name}}`).join('/')
     return `
-      class ${name} extends Route<${parentName}, RouteParams['${route.key}']> {
+      class ${name} extends Route<${parentName}, RouteParams['${route.localKey}']> {
         constructor(${params}) {
-          super('${route.key}', '/${path}', ${route.parent ? 'parent' : 'undefined'}, ${this.getParamsObject(route) ?? '{}'})
+          super(
+            '${route.globalKey}',
+            '/${path}', ${route.parent ? 'parent' : 'undefined'},
+            ${this.getParamsObject(route) ?? '{}'},
+          )
         }
       
-        ${route.children?.map(r => `${r.name} = new ${this.keyToClassName.get(r.key)}(this)`).join('\n')}
+        ${route.children?.map(r => `${r.name} = new ${this.keyToClassName.get(r.localKey)}(this)`).join('\n')}
       }
     `
   }
@@ -81,7 +89,7 @@ export class Codegen {
   private writeRouteParamsInterface() {
     this.code.push(`
       interface RouteParams {
-        ${this.routes.map(route => `'${route.key}': ${this.getParamsType(route) ?? 'void'}`).join(',\n')}
+        ${this.routes.map(route => `'${route.localKey}': ${this.getParamsType(route) ?? 'void'}`).join(',\n')}
       }
     `)
   }
@@ -94,17 +102,25 @@ export class Codegen {
   }
 
   private writeRootAndNavigatorConstants() {
-    const root = this.routes[0]
-    this.code.push(`
-      export const ${root.name} = new ${this.keyToClassName.get(root.key)}()
-      export const navigator = new CitronNavigator(${root.name} as unknown as Route) // fixme
-    `)
+    this.code.push(`export const ${this.root.name} = new ${this.keyToClassName.get(this.root.localKey)}()`)
+    if (this.isModule) {
+      this.code.push(`
+        if (CitronNavigator.instance) {
+          CitronNavigator.instance.updateNavigationTree(${this.root.name}, '${this.root.globalKey}')
+        } else {
+          new CitronNavigator(${this.root.name} as unknown as Route)
+        }
+        export const navigator = CitronNavigator.instance!
+      `)
+    } else {
+      this.code.push(`export const navigator = new CitronNavigator(${this.root.name} as unknown as Route)`)
+    }
   }
 
   private writeRouteByKeyInterface() {
     this.code.push(`
       const routeByKey: RouteByKey = {
-        ${this.routes.map(({ key }) => `'${key}': ${key}`).join(',\n')}
+        ${this.routes.map(({ localKey }) => `'${localKey}': ${localKey}`).join(',\n')}
       }
     `)
   }
@@ -112,7 +128,15 @@ export class Codegen {
   private writeRouteByKeyConstant() {
     this.code.push(`
       interface RouteByKey {
-        ${this.routes.map(({ key }) => `'${key}': ${this.keyToClassName.get(key)}`).join(',\n')}
+        ${this.routes.map(({ localKey }) => `'${localKey}': ${this.keyToClassName.get(localKey)}`).join(',\n')}
+      }
+    `)
+  }
+
+  private writeLocalToGlobalKeyMap() {
+    this.code.push(`
+      const localToGlobalKeyMap = {
+        ${this.routes.map(({ localKey, globalKey }) => `'${localKey}': '${globalKey}'`).join(',\n')}
       }
     `)
   }
@@ -128,6 +152,7 @@ export class Codegen {
     this.writeRouteByKeyInterface()
     this.code.push('')
     this.writeRouteByKeyConstant()
+    if (this.isModule) this.writeLocalToGlobalKeyMap()
     this.code.push(`
       export type ViewPropsOf<T extends keyof RouteParams> = RouteParams[T] extends void
         ? { route: RouteByKey[T] }
@@ -189,10 +214,14 @@ export class Codegen {
           const clauses: NavigationClauses = { when: {}, whenSubrouteOf: new LinkedList(compareRouteKeysDesc) }
           navigationHandler(buildContext(clauses))
           const stopListeningToRouteChanges = navigator.onRouteChangeAsync(async (route, params) => {
-            const when = Object.keys(clauses.when).find(key => route.$is(key))
+            const when = Object.keys(clauses.when).find(
+              key => route.$is(${this.isModule ? 'localToGlobalKeyMap[key as keyof typeof localToGlobalKeyMap]': 'key'}),
+            )
             if (when) queue.current.push(() => clauses.when[when]({ route, params }))
             else {
-              const whenSubroute = clauses.whenSubrouteOf.find(({ key }) => route.$isSubrouteOf(key))
+              const whenSubroute = clauses.whenSubrouteOf.find(
+                ({ key }) => route.$isSubrouteOf(${this.isModule ? 'localToGlobalKeyMap[key as keyof typeof localToGlobalKeyMap]': 'key'}),
+              )
               if (whenSubroute) {
                 queue.current.push(() => whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params }))
               }
