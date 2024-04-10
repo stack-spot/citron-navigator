@@ -6,6 +6,14 @@ type NotFoundListener = (path: string) => void
 type RouteChangeListener = (route: Route, params: Record<string, any>) => void
 type AsyncRouteChangeListener = (route: Route, params: Record<string, any>) => Promise<void> | void
 
+/**
+ * Singleton. This is the application's navigator (Citron Navigator).
+ * 
+ * To create a CitronNavigator instance, call `CitronNavigator.create`. If there's not yet an instance, it will create one, otherwise, it
+ * will return the existing instance.
+ * 
+ * To access the current instance, use `CitronNavigator.instance`, which will be undefined if no instance has been created yet.
+ */
 export class CitronNavigator {
   private root: Route
   private notFoundListeners: NotFoundListener[] = []
@@ -14,17 +22,33 @@ export class CitronNavigator {
   currentRoute: Route | undefined
   currentParams: Record<string, any> = {}
   useHash: boolean
-  static readonly instance: CitronNavigator
+  static instance: CitronNavigator
 
-  constructor(root: Route, useHash = true) {
-    // @ts-ignore
-    CitronNavigator.instance = this
+  private constructor(root: Route, useHash = true) {
     this.root = root
     this.useHash = useHash
     window.addEventListener('popstate', () => this.updateRoute())
     this.updateRoute()
   }
 
+  /**
+   * Creates a navigator if none has been created yet. Otherwise, returns the current navigator.
+   * @param root the navigation tree.
+   * @param useHash whether or not to use hash-based urls (domain/#/path). The default is true.
+   * @returns the navigator
+   */
+  static create(root: Route, useHash = true) {
+    CitronNavigator.instance ??= new CitronNavigator(root, useHash)
+    return CitronNavigator.instance
+  }
+
+  /**
+   * Updates the navigation tree by replacing a node for another.
+   * 
+   * This is used by modular navigation. A module can load more routes into the tree.
+   * @param route the node to enter the tree.
+   * @param keyToReplace the key of the node to be replaces.
+   */
   updateNavigationTree(route: Route<any, any, any>, keyToReplace: string) {
     let oldRoute: any = this.root
     const reminderKey = keyToReplace.replace(new RegExp(`^${this.root.$key}\\.?`), '')
@@ -42,10 +66,18 @@ export class CitronNavigator {
     this.updateRoute()
   }
 
+  /**
+   * Gets the path of the provided url (considering hash-based paths).
+   * @param url the url to extract the path from. The current url (window.location) is used if none is provided. 
+   * @returns the path part of the url.
+   */
   getPath(url: URL = new URL(location.toString())) {
     return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname
   }
 
+  /**
+   * Updates the current route according to the current URL.
+   */
   updateRoute() {
     const route = this.findRouteByPath(this.root, this.getPath())
     if (route) this.handleRouteChange(route)
@@ -169,10 +201,24 @@ export class CitronNavigator {
     }
   }
 
+  /**
+   * Adds a listener for changes to the route.
+   * 
+   * If you need a listener that runs asynchronously, consider using `onRouteChangeAsync`.
+   * @param listener a function called when the route changes.
+   * @returns a function that, when called, removes the listener.
+   */
   onRouteChange(listener: RouteChangeListener): () => void {
     return this.addRouteChangeListener(listener, false)
   }
 
+  /**
+   * Adds a listener for changes to the route.
+   * 
+   * If the listener runs asynchronously (returns a promise)
+   * @param listener a function called when the route changes.
+   * @returns a function that, when called, removes the listener.
+   */
   onRouteChangeAsync(listener: AsyncRouteChangeListener): () => void {
     return this.addRouteChangeListener(listener, true)
   }
