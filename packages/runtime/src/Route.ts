@@ -97,6 +97,12 @@ export abstract class Route<
     if (!options?.preventDefault) CitronNavigator.instance?.updateRoute()
   }
 
+  private setSearchParam(searchParams: URLSearchParams, key: string, value: any) {
+    if (value === undefined || value === null || value === '') return
+    if (Array.isArray(value)) return value.forEach(v => searchParams.append(key, v))
+    searchParams.set(key, typeof value === 'object' ? JSON.stringify(value) : value)
+  }
+
   /**
    * Creates a link (relative url) to this route.
    * 
@@ -116,14 +122,7 @@ export abstract class Route<
     const url = new URL(CitronNavigator.instance?.useHash ? location.pathname : path, location.origin)
     if (CitronNavigator.instance?.useHash) url.hash = `#${path}`
     const newSearchParams = (options?.mergeSearchParameters ? parameters : params) ?? {}
-    Object.keys(this.$paramMetadata).forEach((key) => {
-      if (urlParams.includes(key)) return
-      const value = newSearchParams[key]
-      if (value !== undefined && value !== null && value !== '') {
-        const serialized = typeof value === 'object' ? JSON.stringify(value) : value
-        url.searchParams.set(key, serialized)
-      }
-    })
+    Object.keys(this.$paramMetadata).forEach(key => this.setSearchParam(url.searchParams, key, newSearchParams[key]))
     return `${url.pathname}${url.hash}${url.search}`
   }
 

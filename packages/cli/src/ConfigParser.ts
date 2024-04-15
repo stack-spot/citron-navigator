@@ -1,4 +1,6 @@
 import { parse } from 'yaml'
+import { VALID_TYPES } from './constants'
+import { DuplicatedRouteError, InvalidModifier, InvalidParameterType, InvalidPath, InvalidRouteFormat, InvalidRouteLinkLevel, InvalidRouteParamName, InvalidSearchParamFormat, InvalidSearchParamName, InvalidYaml, InvalidYamlKeyType, NoRootError, SearchParamClashWithPropagatedParamError, SearchParamClashWithRouteParamError } from './error'
 import { Config, JSType, Parameter, PathObject, RouteConfig } from './types'
 
 interface Pair {
@@ -7,7 +9,6 @@ interface Pair {
 }
 
 const PARAM_NAME_REGEX = /^[A-z_]\w*$/
-const VALID_TYPES = ['string', 'number', 'boolean', 'array', 'object']
 const MODULAR_ROUTE_REGEX = /^\+ (\w+) ~ (\w+(?:\.\w+)*) \(([^)]+)\)\s*$/ // + name ~ reference (path)
 
 export class ConfigParser {
@@ -19,31 +20,21 @@ export class ConfigParser {
   }
 
   private parseParameter({ key, value }: Pair): Parameter {
-    if (typeof value !== 'string') {
-      throw new Error(
-        `Error while parsing key "${key}" of yaml. Please make sure that:\n  - all parameter values are strings;\n  - all routes start with "+ " and ends with ":".`,
-      )
-    }
+    if (typeof value !== 'string') throw new InvalidYamlKeyType(key)
     // regex: modifier? name: jsType (tsType)?
     const [, modifier, name] = key.match(/^(?:(\w+)\s+)?(\w+)$/) ?? []
     const [, jsType, tsType] = value.match(/^([^\s]+)(?:\s+\((.+)\))?$/) ?? []
-    if (!name || !jsType) {
-      throw new Error(
-        `Incorrect parameter format: "${key}: ${value}". Expected format is "modifier name: type (typescriptType)", where modifier and typescriptType are optional.`,
-      )
+    if (!name || !jsType) throw new InvalidSearchParamFormat(key, value)
+    if (modifier && modifier !== 'propagate') throw new InvalidModifier(modifier, name)
+      
+    if (!name.match(PARAM_NAME_REGEX)) throw new InvalidSearchParamName(name)
+    if (!VALID_TYPES.includes(jsType)) throw new InvalidParameterType(jsType, name)
+    return {
+      name,
+      jsType: jsType as JSType,
+      tsType: tsType || (jsType === 'array' ? 'any[]' : jsType),
+      propagate: modifier === 'propagate',
     }
-    if (modifier && modifier !== 'propagate') {
-      throw new Error(`Invalid modifier "${modifier}" for parameter "${name}". Valid options are: "propagate".`)
-    }
-    if (!name.match(PARAM_NAME_REGEX)) {
-      throw new Error(`Invalid parameter name: ${name}. Please use only numbers, letters and _. Parameters also can't start with number.`)
-    }
-    if (!VALID_TYPES.includes(jsType)) {
-      throw new Error(
-        `Invalid type "${jsType}" for parameter "${name}". Valid options are: ${VALID_TYPES.map(t => `"${t}"`).join(', ')}.`,
-      )
-    }
-    return { name, jsType: jsType as JSType, tsType: tsType || jsType, propagate: modifier === 'propagate' }
   }
 
   private parsePath(path: string, params: Parameter[]): PathObject[] {
@@ -51,11 +42,7 @@ export class ConfigParser {
     return parts.map(part => {
       const [, name] = part.match(/^{([^}]+)}$/) ?? []
       if (!name) return part
-      if (!name.match(PARAM_NAME_REGEX)) {
-        throw new Error(
-          `Invalid route parameter: ${name}. Please use only numbers, letters and _. Route parameters also can't start with number.`,
-        )
-      }
+      if (!name.match(PARAM_NAME_REGEX)) throw new InvalidRouteParamName(name)
       const details = params.find(p => p.name === name)
       return details ?? { name, jsType: 'string', tsType: 'string' }
     })
@@ -86,14 +73,10 @@ export class ConfigParser {
     const inheritedQuery = parent?.query?.filter(p => p.propagate) ?? []
     const ownQuery = params.filter((param) => {
       if (parent?.path?.some(p => typeof p === 'object' && p.name === param.name)) {
-        throw new Error(
-          `Parameter "${param.name}" of route "${routeKey}" has already been defined as a route parameter for a parent route.`,
-        )
+        throw new SearchParamClashWithRouteParamError(param.name, routeKey)
       }
       if (inheritedQuery.some(p => p.name === param.name)) {
-        throw new Error(
-          `Parameter "${param.name}" of route "${routeKey}" has already been defined as a propagated query parameter for a parent route.`,
-        )
+        throw new SearchParamClashWithPropagatedParamError(param.name, routeKey)
       }
       return !ownPath.some(p => typeof p === 'object' && p.name === param.name)
     })
@@ -101,9 +84,9 @@ export class ConfigParser {
   }
 
   private parseRouteModule({ key, value }: Pair, parent: RouteConfig | undefined): RouteConfig {
-    if (parent) throw new Error('Invalid route module: route modules (~) can only appear at the root level.')
+    if (parent) throw new InvalidRouteLinkLevel()
     const [, name, ref, path] = key.match(MODULAR_ROUTE_REGEX) ?? []
-    if (!path.startsWith('/')) throw new Error(`Invalid path: ${path}. Paths must start with "/".`)
+    if (!path.startsWith('/')) throw new InvalidPath(path)
     const params = this.parseParams(value)
     const pathObject = this.parsePath(path, params)
     const route: RouteConfig = {
@@ -120,12 +103,10 @@ export class ConfigParser {
   private parseRoute({ key, value }: Pair, parent: RouteConfig | undefined): RouteConfig {
     if (key.match(MODULAR_ROUTE_REGEX)) return this.parseRouteModule({ key, value }, parent)
     const [, name, path] = key.match(/^\+ (\w+) \(([^)]+)\)\s*$/) ?? [] // + name (path)
-    if (!name || !path) throw new Error(`Invalid route key: ${key}. Expected format: + name (path).`)
-    if (!path.startsWith('/')) throw new Error(`Invalid path: ${path}. Paths must start with "/".`)
+    if (!name || !path) throw new InvalidRouteFormat(key)
+    if (!path.startsWith('/')) throw new InvalidPath(path)
     const routeKey = parent ? `${parent.localKey}.${name}` : name
-    if (this.routeKeys.includes(routeKey)) {
-      throw new Error(`Duplicated route: "${routeKey}".`)
-    }
+    if (this.routeKeys.includes(routeKey)) throw new DuplicatedRouteError(routeKey)
     this.routeKeys.push(routeKey)
     const params = this.parseParams(value)
     const ownPath = this.parsePath(path, params)
@@ -143,10 +124,9 @@ export class ConfigParser {
 
   parse(): Config {
     const yaml = parse(this.config)
+    if (typeof yaml !== 'object') throw new InvalidYaml()
     const keys = Object.keys(yaml)
-    if (keys.length !== 1) {
-      throw new Error('Invalid format. Expected a single route at the root level.')
-    }
+    if (keys.length !== 1) throw new NoRootError()
     return {
       root: this.parseRoute({ key: keys[0], value: yaml[keys[0]] }, undefined),
       isModule: MODULAR_ROUTE_REGEX.test(keys[0]),

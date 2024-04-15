@@ -122,7 +122,8 @@ export class CitronNavigator {
     ).message
   }
 
-  private deserializeUrlParam(key: string, value: string): any {
+  private deserializeUrlParam(key: string, values: string[]): any {
+    const value = values[0]
     if (!this.currentRoute) return value
     const type = this.currentRoute.$paramMetadata[key]
     switch (type) {
@@ -141,18 +142,7 @@ export class CitronNavigator {
         // eslint-disable-next-line no-console
         console.error(this.paramTypeError(key, value, type, this.currentRoute.$key, 'true'))
         return true
-      case 'array':
-        try {
-          const parsed = JSON.parse(value)
-          if (Array.isArray(parsed)) return parsed
-          // eslint-disable-next-line no-console
-          console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
-          return value
-        } catch {
-          // eslint-disable-next-line no-console
-          console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
-          return value
-        }
+      case 'array': return values
       case 'object':
         try {
           const parsed = JSON.parse(value)
@@ -175,8 +165,9 @@ export class CitronNavigator {
   private extractQueryParams(url: URL) {
     const params = this.useHash ? new URLSearchParams(url.hash.replace(/[^?]*\??/, '')) : url.searchParams
     const result: Record<string, any> = {}
-    params.forEach((value, key) => {
-      result[key] = this.deserializeUrlParam(key, value)
+    params.forEach((_, name) => {
+      if (name in result) return
+      result[name] = this.deserializeUrlParam(name, params.getAll(name))
     })
     return result
   }
@@ -187,7 +178,7 @@ export class CitronNavigator {
     const urlParts = splitPath(this.getPath(url))
     routeParts.forEach((value, index) => {
       const [, key] = value.match(/\{(\w+)\}/) ?? []
-      if (key) result[key] = this.deserializeUrlParam(key, decodeURIComponent(urlParts[index]))
+      if (key) result[key] = this.deserializeUrlParam(key, [decodeURIComponent(urlParts[index])])
     })
     return result
   }
@@ -213,9 +204,10 @@ export class CitronNavigator {
   }
 
   /**
-   * Adds a listener for changes to the route.
+   * Adds a listener for changes to the route. This listener can be async (return a promise).
    * 
-   * If the listener runs asynchronously (returns a promise)
+   * Asynchronous listeners are run before every synchronous listener. Synchronous listeners are only run once all async listeners finish
+   * running.
    * @param listener a function called when the route changes.
    * @returns a function that, when called, removes the listener.
    */
@@ -223,6 +215,12 @@ export class CitronNavigator {
     return this.addRouteChangeListener(listener, true)
   }
 
+  /**
+   * Adds a listener that runs when a navigation is performed to a route that doesn't exist.
+   * 
+   * @param listener a function called when the route is not found.
+   * @returns a function that, when called, removes the listener.
+   */
   onNotFound(listener: NotFoundListener): () => void {
     this.notFoundListeners.push(listener)
     return () => {
