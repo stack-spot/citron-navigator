@@ -1,0 +1,5 @@
++ root ~ root.studios (/studios):
+  search: string
+  + studio (/{studioId}):
+    + stacks (/stacks):
+      ownership: string (Navigation.Ownership) 

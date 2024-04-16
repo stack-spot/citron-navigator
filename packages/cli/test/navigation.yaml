@@ -1,0 +1,22 @@
++ root (/):
+  propagate create: string ('studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application')
+  + studios (/studios):
+    like: string
+    limit: number
+    + studio (/{studioId}):
+      + stacks (/stacks):
+        tech: array (string[])
+        type: string (Navigation.Ownership)
+        + stack (/{stackId}/{other}):
+          other: object
+          stackId: number
+          propagate str: string ('test')
+          num: number (400 | 500 | 600)
+          bool: boolean (false)
+          obj: object (Record<string, Navigation.Person>)
+          arr: array (Navigation.Person[])
+          doubleArr: array (string[][])
+          + starters (/starters):
+            + starter (/{starterId}):
+              + account (/account):
+      + plugins (/plugins):
