@@ -1,4 +1,4 @@
-import { Route } from './Route'
+import { AnyRoute, Route } from './Route'
 import { NavigationError } from './errors'
 import { removeElementFromArray, splitPath } from './utils'
 
@@ -15,16 +15,16 @@ type AsyncRouteChangeListener = (route: Route, params: Record<string, any>) => P
  * To access the current instance, use `CitronNavigator.instance`, which will be undefined if no instance has been created yet.
  */
 export class CitronNavigator {
-  private root: Route
+  private root: AnyRoute
   private notFoundListeners: NotFoundListener[] = []
   private routeChangeListeners: RouteChangeListener[] = []
   private asyncRouteChangeListeners: AsyncRouteChangeListener[] = []
-  currentRoute: Route | undefined
+  currentRoute: AnyRoute | undefined
   currentParams: Record<string, any> = {}
   useHash: boolean
-  static instance: CitronNavigator
+  static readonly instance: CitronNavigator
 
-  private constructor(root: Route, useHash = true) {
+  private constructor(root: AnyRoute, useHash = true) {
     this.root = root
     this.useHash = useHash
     window.addEventListener('popstate', () => this.updateRoute())
@@ -37,7 +37,8 @@ export class CitronNavigator {
    * @param useHash whether or not to use hash-based urls (domain/#/path). The default is true.
    * @returns the navigator
    */
-  static create(root: Route, useHash = true) {
+  static create(root: AnyRoute, useHash = true) {
+    // @ts-ignore: should be read-only for external code only
     CitronNavigator.instance ??= new CitronNavigator(root, useHash)
     return CitronNavigator.instance
   }
@@ -58,7 +59,7 @@ export class CitronNavigator {
       throw new Error(`Navigation error: cannot update navigation tree at route with key "${keyToReplace}" because the key doesn't exist.`)
     }
     if (oldRoute === this.root) {
-      this.root = oldRoute
+      this.root = route
     } else {
       route.$parent = oldRoute.$parent
       oldRoute.$parent[keyParts[keyParts.length - 1]] = route
@@ -68,11 +69,16 @@ export class CitronNavigator {
 
   /**
    * Gets the path of the provided url (considering hash-based paths).
+   * 
+   * Examples:
+   * - "https://www.stackspot.com/pt/ai-assistente" (useHash = false): "pt/ai-assistente".
+   * - "https://www.stackspot.com/#/pt/ai-assistente" (useHash = true): "pt/ai-assistente".
+   * 
    * @param url the url to extract the path from. The current url (window.location) is used if none is provided. 
    * @returns the path part of the url.
    */
   getPath(url: URL = new URL(location.toString())) {
-    return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname
+    return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname.replace(/^\//, '')
   }
 
   /**
@@ -145,20 +151,12 @@ export class CitronNavigator {
       case 'array': return values
       case 'object':
         try {
-          const parsed = JSON.parse(value)
-          if (typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
-          // eslint-disable-next-line no-console
-          console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
-          return value
+          return JSON.parse(value)
         } catch {
           // eslint-disable-next-line no-console
           console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
           return value
         }
-      default:
-        // eslint-disable-next-line no-console
-        console.warn(`Navigation: extra parameter found for route "${this.currentRoute.$key}": "${key}". The navigator will interpret it as a string.`)
-        return value
     }
   }
 

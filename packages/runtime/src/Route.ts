@@ -1,7 +1,7 @@
 import { CitronNavigator } from './CitronNavigator'
 import { splitPath } from './utils'
 
-type ParamType = 'string' | 'number' | 'boolean' | 'array' | 'object'
+type ParamType = 'string' | 'number' | 'boolean' | 'string[]' | 'number[]' | 'boolean[]' | 'object'
 
 interface LinkOptions {
   /**

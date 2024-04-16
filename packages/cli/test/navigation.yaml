@@ -1,5 +1,6 @@
 + root (/):
   propagate create: string ('studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application')
+  + account (/account):
   + studios (/studios):
     like: string
     limit: number
@@ -15,8 +16,7 @@
           bool: boolean (false)
           obj: object (Record<string, Navigation.Person>)
           arr: array (Navigation.Person[])
-          doubleArr: array (string[][])
+          doubleArr: object (string[][])
           + starters (/starters):
             + starter (/{starterId}):
-              + account (/account):
       + plugins (/plugins):

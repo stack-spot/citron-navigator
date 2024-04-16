@@ -1,4 +1,4 @@
-export type JSType = 'string' | 'number' | 'boolean' | 'array' | 'object'
+export type JSType = 'string' | 'number' | 'boolean' | 'string[]' | 'number[]' | 'boolean[]' | 'object'
 
 export interface Parameter {
   name: string,
