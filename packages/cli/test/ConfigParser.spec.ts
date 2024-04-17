@@ -61,11 +61,13 @@ describe('ConfigParser', () => {
 
   it('should parse typed url param (js)', () => {
     const yaml = [
-      '+ test (/{str}/{num}/{obj}/{arr}/{bool}):',
+      '+ test (/{str}/{num}/{obj}/{strArr}/{numArr}/{boolArr}/{bool}):',
       '  str: string',
       '  num: number',
       '  obj: object',
-      '  arr: array',
+      '  strArr: string[]',
+      '  numArr: number[]',
+      '  boolArr: boolean[]',
       '  bool: boolean',
     ].join('\n')
     const config = new ConfigParser(yaml).parse()
@@ -73,7 +75,9 @@ describe('ConfigParser', () => {
       { name: 'str', jsType: 'string', tsType: 'string' },
       { name: 'num', jsType: 'number', tsType: 'number' },
       { name: 'obj', jsType: 'object', tsType: 'object' },
-      { name: 'arr', jsType: 'array', tsType: 'any[]' },
+      { name: 'strArr', jsType: 'string[]', tsType: 'string[]' },
+      { name: 'numArr', jsType: 'number[]', tsType: 'number[]' },
+      { name: 'boolArr', jsType: 'boolean[]', tsType: 'boolean[]' },
       { name: 'bool', jsType: 'boolean', tsType: 'boolean' },
     ].map(expect.objectContaining)
     expect(config.root.path).toEqual(expectedParams)
@@ -81,18 +85,24 @@ describe('ConfigParser', () => {
 
   it('should parse typed url param (ts)', () => {
     const yaml = [
-      '+ test (/{str}/{num}/{obj}/{arr}):',
+      '+ test (/{str}/{num}/{obj}/{strArr}/{numArr}/{boolArr}/{bool}):',
       "  str: string ('option1' | 'option2')",
       '  num: number (Navigation.HttpStatus)',
+      '  bool: boolean (true)',
       '  obj: object (Navigation.User)',
-      '  arr: array (number[])',
+      "  strArr: string[] (('a' | 'b' | 'c')[])",
+      '  numArr: number[] ((400 | 500 | 600)[])',
+      '  boolArr: boolean[] (true[])',
     ].join('\n')
     const config = new ConfigParser(yaml).parse()
     const expectedParams: Parameter[] = [
       { name: 'str', jsType: 'string', tsType: "'option1' | 'option2'" },
       { name: 'num', jsType: 'number', tsType: 'Navigation.HttpStatus' },
       { name: 'obj', jsType: 'object', tsType: 'Navigation.User' },
-      { name: 'arr', jsType: 'array', tsType: 'number[]' },
+      { name: 'strArr', jsType: 'string[]', tsType: "('a' | 'b' | 'c')[]" },
+      { name: 'numArr', jsType: 'number[]', tsType: '(400 | 500 | 600)[]' },
+      { name: 'boolArr', jsType: 'boolean[]', tsType: 'true[]' },
+      { name: 'bool', jsType: 'boolean', tsType: 'true' },
     ].map(expect.objectContaining)
     expect(config.root.path).toEqual(expectedParams)
   })
@@ -102,17 +112,21 @@ describe('ConfigParser', () => {
       '+ test (/):',
       '  str: string',
       '  num: number',
-      '  obj: object',
-      '  arr: array',
       '  bool: boolean',
+      '  strArr: string[]',
+      '  numArr: number[]',
+      '  boolArr: boolean[]',
+      '  obj: object',
     ].join('\n')
     const config = new ConfigParser(yaml).parse()
     const expectedParams: Parameter[] = [
       { name: 'str', jsType: 'string', tsType: 'string' },
       { name: 'num', jsType: 'number', tsType: 'number' },
-      { name: 'obj', jsType: 'object', tsType: 'object' },
-      { name: 'arr', jsType: 'array', tsType: 'any[]' },
       { name: 'bool', jsType: 'boolean', tsType: 'boolean' },
+      { name: 'strArr', jsType: 'string[]', tsType: 'string[]' },
+      { name: 'numArr', jsType: 'number[]', tsType: 'number[]' },
+      { name: 'boolArr', jsType: 'boolean[]', tsType: 'boolean[]' },
+      { name: 'obj', jsType: 'object', tsType: 'object' },
     ].map(expect.objectContaining)
     expect(config.root.query).toEqual(expectedParams)
   })
@@ -123,14 +137,18 @@ describe('ConfigParser', () => {
       "  str: string ('option1' | 'option2')",
       '  num: number (Navigation.HttpStatus)',
       '  obj: object (Navigation.User)',
-      '  arr: array (number[])',
+      "  strArr: string[] (('a' | 'b' | 'c')[])",
+      '  numArr: number[] ((400 | 500 | 600)[])',
+      '  boolArr: boolean[] (true[])',
     ].join('\n')
     const config = new ConfigParser(yaml).parse()
     const expectedParams: Parameter[] = [
       { name: 'str', jsType: 'string', tsType: "'option1' | 'option2'" },
       { name: 'num', jsType: 'number', tsType: 'Navigation.HttpStatus' },
       { name: 'obj', jsType: 'object', tsType: 'Navigation.User' },
-      { name: 'arr', jsType: 'array', tsType: 'number[]' },
+      { name: 'strArr', jsType: 'string[]', tsType: "('a' | 'b' | 'c')[]" },
+      { name: 'numArr', jsType: 'number[]', tsType: '(400 | 500 | 600)[]' },
+      { name: 'boolArr', jsType: 'boolean[]', tsType: 'true[]' },
     ].map(expect.objectContaining)
     expect(config.root.query).toEqual(expectedParams)
   })

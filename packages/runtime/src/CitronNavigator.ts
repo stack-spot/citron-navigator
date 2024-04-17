@@ -84,9 +84,9 @@ export class CitronNavigator {
   /**
    * Updates the current route according to the current URL.
    */
-  updateRoute() {
+  async updateRoute() {
     const route = this.findRouteByPath(this.root, this.getPath())
-    if (route) this.handleRouteChange(route)
+    if (route) await this.handleRouteChange(route)
     else this.handleNotFound()
   }
 
@@ -117,9 +117,10 @@ export class CitronNavigator {
   }
 
   private handleNotFound() {
+    const path = this.getPath()
     // eslint-disable-next-line no-console
-    console.error(new NavigationError(`route not registered (${location.pathname})`).message)
-    this.notFoundListeners.forEach(l => l(location.pathname))
+    console.error(new NavigationError(`route not registered (${path})`).message)
+    this.notFoundListeners.forEach(l => l(path))
   }
 
   private paramTypeError(key: string, value: string, type: string, routeKey: string, interpretingAs: string = 'a raw string') {
@@ -128,27 +129,32 @@ export class CitronNavigator {
     ).message
   }
 
-  private deserializeUrlParam(key: string, values: string[]): any {
+  private deserializeNumber(key: string, value: string) {
+    const deserialized = parseFloat(value)
+    // eslint-disable-next-line no-console
+    if (isNaN(deserialized)) console.error(this.paramTypeError(key, value, 'number', this.currentRoute?.$key ?? 'unknown', 'NaN'))
+    return deserialized
+  }
+
+  private deserializeBoolean(key: string, value: string) {
+    if (value === 'true' || value === '') return true
+    if (value === 'false') return false
+    // eslint-disable-next-line no-console
+    console.error(this.paramTypeError(key, value, 'boolean', this.currentRoute?.$key ?? 'unknown', 'true'))
+    return true
+  }
+
+  private deserializeParameter(key: string, values: string[]): any {
     const value = values[0]
     if (!this.currentRoute) return value
     const type = this.currentRoute.$paramMetadata[key]
     switch (type) {
       case 'string': return value
-      case 'number':
-        try {
-          return value.includes('.') ? parseFloat(value) : parseInt(value)
-        } catch {
-          // eslint-disable-next-line no-console
-          console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
-          return value
-        }
-      case 'boolean':
-        if (value === 'true' || value === '') return true
-        if (value === 'false') return false
-        // eslint-disable-next-line no-console
-        console.error(this.paramTypeError(key, value, type, this.currentRoute.$key, 'true'))
-        return true
-      case 'array': return values
+      case 'number': return this.deserializeNumber(key, value)
+      case 'boolean': return this.deserializeBoolean(key, value)
+      case 'string[]': return values
+      case 'number[]': return values.map(v => this.deserializeNumber(key, v))
+      case 'boolean[]': return values.map(v => this.deserializeBoolean(key, v))
       case 'object':
         try {
           return JSON.parse(value)
@@ -165,7 +171,7 @@ export class CitronNavigator {
     const result: Record<string, any> = {}
     params.forEach((_, name) => {
       if (name in result) return
-      result[name] = this.deserializeUrlParam(name, params.getAll(name))
+      result[name] = this.deserializeParameter(name, params.getAll(name))
     })
     return result
   }
@@ -174,9 +180,16 @@ export class CitronNavigator {
     const result: Record<string, any> = {}
     const routeParts = splitPath(this.currentRoute?.$path)
     const urlParts = splitPath(this.getPath(url))
+    const paramMetadata = this.currentRoute?.$paramMetadata ?? {}
     routeParts.forEach((value, index) => {
       const [, key] = value.match(/\{(\w+)\}/) ?? []
-      if (key) result[key] = this.deserializeUrlParam(key, [decodeURIComponent(urlParts[index])])
+      const paramStringValue = decodeURIComponent(urlParts[index])
+      /* if the parameter is supposed to be an array, get all of its values by splitting the string by "-" (considering "\" as a escape
+      character). */
+      const paramArrayValue = paramMetadata[key]?.endsWith('[]')
+        ? paramStringValue.split(/(?<!\\)-/).map(item => item.replace(/\\-/g, '-'))
+        : [paramStringValue]
+      if (key) result[key] = this.deserializeParameter(key, paramArrayValue)
     })
     return result
   }

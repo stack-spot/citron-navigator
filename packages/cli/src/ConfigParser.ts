@@ -26,13 +26,12 @@ export class ConfigParser {
     const [, jsType, tsType] = value.match(/^([^\s]+)(?:\s+\((.+)\))?$/) ?? []
     if (!name || !jsType) throw new InvalidSearchParamFormat(key, value)
     if (modifier && modifier !== 'propagate') throw new InvalidModifier(modifier, name)
-      
     if (!name.match(PARAM_NAME_REGEX)) throw new InvalidSearchParamName(name)
     if (!VALID_TYPES.includes(jsType)) throw new InvalidParameterType(jsType, name)
     return {
       name,
       jsType: jsType as JSType,
-      tsType: tsType || (jsType === 'array' ? 'any[]' : jsType),
+      tsType: tsType || jsType,
       propagate: modifier === 'propagate',
     }
   }

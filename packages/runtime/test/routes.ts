@@ -6,20 +6,35 @@ interface RouteParams {
 
   // },
   'root.testSearchParams': {
-    str?: 'test',
-    num?: 400 | 500 | 600,
+    str?: string,
+    num?: number,
     boolT?: boolean,
     boolT2?: boolean,
-    boolT3?: boolean,
     boolF?: boolean,
-    obj?: Record<string, string>,
-    arr?: string[],
+    obj?: Record<string, any>,
+    strArr?: string[],
+    numArr?: number[],
+    boolArr?: boolean[],
     doubleArr?: string[][],
+  },
+  'root.testRouteParams': {
+    str: string,
+    num: number,
+    boolT: boolean,
+    boolF: boolean,
+    obj: Record<string, any>,
+    strArr: string[],
+    numArr: number[],
+    boolArr: boolean[],
+    doubleArr: string[][],
+  },
+  'root.testArrayEscape': {
+    strArr: string[],
   },
   'root.account': void,
   'root.studios': { like?: string, limit?: number },
   'root.studios.studio': { studioId: string },
-  'root.studios.studio.stacks': { studioId: string, tech?: string[], type?: 'own' | 'all' },
+  'root.studios.studio.stacks': { studioId: string, type?: 'own' | 'all' },
   'root.studios.studio.stacks.stack': {
     studioId: string,
     stackId: string,
@@ -46,6 +61,8 @@ export class RootRoute extends Route<undefined, RouteParams['root']> {
   studios = new StudiosRoute(this)
   account = new AccountRoute(this)
   testSearchParams = new TestSearchParamsRoute(this)
+  testRouteParams = new TestRouteParamsRoute(this)
+  testArrayEscape = new TestArrayEscapeRoute(this)
 }
 
 export class AlternativeRootRoute extends Route<undefined, RouteParams['root']> {
@@ -93,12 +110,45 @@ class TestSearchParamsRoute extends Route<RootRoute, RouteParams['root.testSearc
         num: 'number',
         boolT: 'boolean',
         boolT2: 'boolean',
-        boolT3: 'boolean',
         boolF: 'boolean',
-        arr: 'array',
+        strArr: 'string[]',
+        numArr: 'number[]',
+        boolArr: 'boolean[]',
         obj: 'object',
         doubleArr: 'object',
       },
+    )
+  }
+}
+
+class TestRouteParamsRoute extends Route<RootRoute, RouteParams['root.testRouteParams']> {
+  constructor(parent: RootRoute) {
+    super(
+      'root.testRouteParams',
+      '/testRouteParams/{str}/{num}/{boolT}/{boolF}/{strArr}/{numArr}/{boolArr}/{obj}/{doubleArr}',
+      parent,
+      {
+        str: 'string',
+        num: 'number',
+        boolT: 'boolean',
+        boolF: 'boolean',
+        strArr: 'string[]',
+        numArr: 'number[]',
+        boolArr: 'boolean[]',
+        obj: 'object',
+        doubleArr: 'object',
+      },
+    )
+  }
+}
+
+class TestArrayEscapeRoute extends Route<RootRoute, RouteParams['root.testArrayEscape']> {
+  constructor(parent: RootRoute) {
+    super(
+      'root.testArrayEscape',
+      '/testArrayEscape/{strArr}',
+      parent,
+      { strArr: 'string[]' },
     )
   }
 }
@@ -122,7 +172,7 @@ class StudioRoute extends Route<StudiosRoute, RouteParams['root.studios.studio']
 
 class StacksRoute extends Route<StudioRoute, RouteParams['root.studios.studio.stacks']> {
   constructor(parent: StudioRoute) {
-    super('root.studios.studio.stacks', '/studios/{studioId}/stacks', parent, { studioId: 'string', tech: 'array', type: 'string' })
+    super('root.studios.studio.stacks', '/studios/{studioId}/stacks', parent, { studioId: 'string', type: 'string' })
   }
 
   stack = new StackRoute(this)

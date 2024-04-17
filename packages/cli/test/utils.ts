@@ -13,7 +13,7 @@ export function expectToThrowWhenParsing(yaml: string, expectedErrorClass: { new
     new ConfigParser(yaml).parse()
     expectToFail()
   } catch (error: any) {
-    expect(error instanceof expectedErrorClass).toBe(true)
+    expect(error).toBeInstanceOf(expectedErrorClass)
   }
 }
 

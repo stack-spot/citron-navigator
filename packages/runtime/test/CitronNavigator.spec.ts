@@ -1,13 +1,20 @@
 import { CitronNavigator } from '../src/CitronNavigator'
 import { AccountRoute, AlternativeRootRoute, ExtendedAccountRoute, RootRoute, SettingsRoute, StudiosRoute, WorkspacesRoute } from './routes'
-import { expectToFail, mockLocation } from './utils'
+import { delay, expectToFail, mockConsoleLogs, mockLocation } from './utils'
 
 describe('Citron Navigator', () => {
+  let logsMockResult: ReturnType<typeof mockConsoleLogs> | undefined
+
   beforeEach(() => {
     // @ts-ignore
     CitronNavigator.instance = undefined
     window.addEventListener = jest.fn()
     mockLocation('https://www.stackspot.com')
+    logsMockResult = mockConsoleLogs()
+  })
+
+  afterEach(() => {
+    logsMockResult?.unMockConsoleLogs()
   })
 
   it('should create new instance and retrieve it when called a second time', () => {
@@ -112,7 +119,41 @@ describe('Citron Navigator', () => {
   })
 
   it('should deserialize route parameters', () => {
-    
+    const urlParams = [
+      'Hello-World', // str
+      '42', // num
+      'true', // boolT
+      'false', // boolF
+      'abc-def-ghi', // strArr
+      '1-2', // numArr
+      'true', // boolArr
+      '{"name":"Dalinar Kholin","age":"53","type":"Bondsmith"}', // obj
+      '[[1,2,3],[4],[5,6,7]]', // doubleArr
+    ]
+    const urlParamsStr = urlParams.map(encodeURIComponent).join('/')
+    mockLocation(`https://www.stackspot.com/#/testRouteParams/${urlParamsStr}`)
+    const navigator = CitronNavigator.create(new RootRoute())
+    expect(navigator.currentParams).toEqual({
+      str: 'Hello-World',
+      num: 42,
+      boolT: true,
+      boolF: false,
+      obj: { name: 'Dalinar Kholin', age: '53', type: 'Bondsmith' },
+      strArr: ['abc', 'def', 'ghi'],
+      numArr: [1, 2],
+      boolArr: [true],
+      doubleArr: [[1, 2, 3], [4], [5, 6, 7]],
+    })
+    expect(logsMockResult?.consoleMock?.error).not.toHaveBeenCalled()
+  })
+
+  it('should escape string arrays when deserializing route parameters', () => {
+    const strArr = ['Hello', 'Hello-World', 'test--a-b---c', 'World']
+    const urlParamsStr = encodeURIComponent(strArr.map(v => v.replace(/-/g, '\\-')).join('-'))
+    mockLocation(`https://www.stackspot.com/#/testArrayEscape/${urlParamsStr}`)
+    const navigator = CitronNavigator.create(new RootRoute())
+    expect(navigator.currentParams).toEqual({ strArr })
+    expect(logsMockResult?.consoleMock?.error).not.toHaveBeenCalled()
   })
 
   it('should deserialize search parameters', () => {
@@ -121,12 +162,14 @@ describe('Citron Navigator', () => {
       { name: 'num', value: '42' },
       { name: 'boolT', value: 'true' },
       { name: 'boolT2', value: '' },
-      { name: 'boolT3', value: 'blah' },
       { name: 'boolF', value: 'false' },
       { name: 'obj', value: '{"name":"Dalinar Kholin","age":"53","type":"Bondsmith"}' },
-      { name: 'arr', value: '1' },
-      { name: 'arr', value: '2' },
-      { name: 'arr', value: '3' },
+      { name: 'strArr', value: 'abc' },
+      { name: 'strArr', value: 'def-ghi' },
+      { name: 'strArr', value: 'jkl' },
+      { name: 'numArr', value: '1' },
+      { name: 'numArr', value: '2' },
+      { name: 'boolArr', value: 'true' },
       { name: 'doubleArr', value: '[[1,2,3],[4],[5,6,7]]' },
     ]
     const queryString = query.map(({ name, value }) => `${name}=${encodeURIComponent(value)}`).join('&')
@@ -137,35 +180,152 @@ describe('Citron Navigator', () => {
       num: 42,
       boolT: true,
       boolT2: true,
-      boolT3: true,
       boolF: false,
       obj: { name: 'Dalinar Kholin', age: '53', type: 'Bondsmith' },
-      arr: ['1', '2', '3'],
+      strArr: ['abc', 'def-ghi', 'jkl'],
+      numArr: [1, 2],
+      boolArr: [true],
       doubleArr: [[1, 2, 3], [4], [5, 6, 7]],
     })
+    expect(logsMockResult?.consoleMock?.error).not.toHaveBeenCalled()
   })
 
-  it('should not deserialize parameters that are not in the metadata', () => {
-    
+  it('should not deserialize search parameters that are not in the metadata', () => {
+    mockLocation('https://www.stackspot.com/#/testSearchParams?str=test&inexistent=test')
+    const navigator = CitronNavigator.create(new RootRoute())
+    expect(navigator.currentParams).toEqual({ str: 'test' })
+    expect(logsMockResult?.consoleMock?.error).not.toHaveBeenCalled()
   })
 
-  it('should deserialize parameters of invalid types as strings and log the error', () => {
-    
+  it('should deserialize parameters of invalid types and log the error', () => {
+    const query = [
+      { name: 'num', value: 'not a number' },
+      { name: 'boolT', value: 'not a boolean' },
+      { name: 'obj', value: 'not an object' },
+      { name: 'numArr', value: '1' },
+      { name: 'numArr', value: 'not a number' },
+      { name: 'numArr', value: '2' },
+      { name: 'numArr', value: 'also not a number' },
+      { name: 'boolArr', value: 'true' },
+      { name: 'boolArr', value: 'false' },
+      { name: 'boolArr', value: 'not a boolean' },
+    ]
+    const queryString = query.map(({ name, value }) => `${name}=${encodeURIComponent(value)}`).join('&')
+    mockLocation(`https://www.stackspot.com/#/testSearchParams?${queryString}`)
+    const navigator = CitronNavigator.create(new RootRoute())
+    expect(navigator.currentParams).toEqual({
+      num: NaN,
+      boolT: true,
+      obj: 'not an object',
+      numArr: [1, NaN, 2, NaN],
+      boolArr: [true, false, true],
+    })
+    expect(logsMockResult?.consoleMock?.error).toHaveBeenCalledTimes(6)
   })
 
-  it('should manage route change listener', () => {
-
+  it('should manage route change listener', async () => {
+    const root = new RootRoute()
+    const navigator = CitronNavigator.create(root)
+    const listener = jest.fn()
+    const removeListener = navigator.onRouteChange(listener)
+    expect(listener).toHaveBeenCalledWith(root, {})
+    listener.mockClear()
+    mockLocation('https://www.stackspot.com/#/studios?limit=50')
+    await navigator.updateRoute()
+    expect(listener).toHaveBeenCalledWith(root.studios, { limit: 50 })
+    listener.mockClear()
+    removeListener()
+    mockLocation('https://www.stackspot.com/#/studios/studio1')
+    await navigator.updateRoute()
+    expect(listener).not.toHaveBeenCalled()
   })
 
-  it('should manage async route change listener', () => {
-
+  it('should manage async route change listener', async () => {
+    const root = new RootRoute()
+    const navigator = CitronNavigator.create(root)
+    let counter = 0
+    const listener = jest.fn(async () => {
+      await delay()
+      counter++
+    })
+    const removeListener = navigator.onRouteChangeAsync(listener)
+    expect(listener).toHaveBeenCalledWith(root, {})
+    await delay(20)
+    expect(counter).toBe(1)
+    listener.mockClear()
+    mockLocation('https://www.stackspot.com/#/studios?limit=50')
+    await navigator.updateRoute()
+    expect(listener).toHaveBeenCalledWith(root.studios, { limit: 50 })
+    expect(counter).toBe(2)
+    listener.mockClear()
+    removeListener()
+    mockLocation('https://www.stackspot.com/#/studios/studio1')
+    await navigator.updateRoute()
+    expect(listener).not.toHaveBeenCalled()
   })
 
-  it('async route change listeners should run at once and finish before synchronous listeners start', () => {
-
+  it('async route change listeners should run at once and finish before synchronous listeners start', async () => {
+    const counter = [0, 0, 0]
+    const asyncListener1 = jest.fn(async () => {
+      await delay()
+      counter[0]++
+    })
+    const asyncListener2 = jest.fn(async () => {
+      await delay()
+      counter[1]++
+    })
+    const syncListener = jest.fn(() => {
+      counter[2]++
+    })
+    const navigator = CitronNavigator.create(new RootRoute())
+    /* we're going to delay a small amount of time here because creating a navigator yields an async route change event that might otherwise
+    run after the listeners below and trigger them again. */
+    await delay()
+    navigator.onRouteChangeAsync(asyncListener1)
+    navigator.onRouteChangeAsync(asyncListener2)
+    navigator.onRouteChange(syncListener)
+    expect(counter).toEqual([0, 0, 1])
+    await delay(20)
+    expect(counter).toEqual([1, 1, 1])
+    asyncListener1.mockClear()
+    asyncListener2.mockClear()
+    syncListener.mockClear()
+    mockLocation('https://www.stackspot.com/#/studios')
+    const promise = navigator.updateRoute()
+    expect(asyncListener1).toHaveBeenCalled()
+    expect(asyncListener2).toHaveBeenCalled()
+    expect(syncListener).not.toHaveBeenCalled()
+    expect(counter).toEqual([1, 1, 1])
+    await promise
+    expect(syncListener).toHaveBeenCalled()
+    expect(counter).toEqual([2, 2, 2])
   })
 
-  it('should manage route not found listener', () => {
+  it('should not call route change listeners when the route is invalid', async () => {
+    mockLocation('https://www.stackspot.com/#/inexistent')
+    const asyncListener = jest.fn()
+    const syncListener = jest.fn()
+    const navigator = CitronNavigator.create(new RootRoute())
+    navigator.onRouteChangeAsync(asyncListener)
+    navigator.onRouteChange(syncListener)
+    mockLocation('https://www.stackspot.com/#/inexistent2')
+    await navigator.updateRoute()
+    expect(asyncListener).not.toHaveBeenCalled()
+    expect(syncListener).not.toHaveBeenCalled()
+  })
 
+  it('should manage route not found listener', async () => {
+    const root = new RootRoute()
+    const navigator = CitronNavigator.create(root)
+    const listener = jest.fn()
+    const removeListener = navigator.onNotFound(listener)
+    mockLocation('https://www.stackspot.com/#/inexistent')
+    navigator.updateRoute()
+    expect(listener).toHaveBeenCalledWith('inexistent')
+    listener.mockClear()
+    removeListener()
+    mockLocation('https://www.stackspot.com/#/inexistent2')
+    await navigator.updateRoute()
+    expect(listener).not.toHaveBeenCalled()
   })
 })
