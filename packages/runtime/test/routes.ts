@@ -15,7 +15,7 @@ interface RouteParams {
     strArr?: string[],
     numArr?: number[],
     boolArr?: boolean[],
-    doubleArr?: string[][],
+    doubleArr?: number[][],
   },
   'root.testRouteParams': {
     str: string,
@@ -26,7 +26,7 @@ interface RouteParams {
     strArr: string[],
     numArr: number[],
     boolArr: boolean[],
-    doubleArr: string[][],
+    doubleArr: number[][],
   },
   'root.testArrayEscape': {
     strArr: string[],
@@ -34,7 +34,7 @@ interface RouteParams {
   'root.account': void,
   'root.studios': { like?: string, limit?: number },
   'root.studios.studio': { studioId: string },
-  'root.studios.studio.stacks': { studioId: string, type?: 'own' | 'all' },
+  'root.studios.studio.stacks': { studioId: string, type?: 'own' | 'all', limit: number },
   'root.studios.studio.stacks.stack': {
     studioId: string,
     stackId: string,
@@ -172,7 +172,7 @@ class StudioRoute extends Route<StudiosRoute, RouteParams['root.studios.studio']
 
 class StacksRoute extends Route<StudioRoute, RouteParams['root.studios.studio.stacks']> {
   constructor(parent: StudioRoute) {
-    super('root.studios.studio.stacks', '/studios/{studioId}/stacks', parent, { studioId: 'string', type: 'string' })
+    super('root.studios.studio.stacks', '/studios/{studioId}/stacks', parent, { studioId: 'string', type: 'string', limit: 'number' })
   }
 
   stack = new StackRoute(this)

@@ -22,7 +22,7 @@ export class CitronNavigator {
   currentRoute: AnyRoute | undefined
   currentParams: Record<string, any> = {}
   useHash: boolean
-  static readonly instance: CitronNavigator
+  static readonly instance: CitronNavigator | undefined
 
   private constructor(root: AnyRoute, useHash = true) {
     this.root = root

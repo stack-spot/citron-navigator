@@ -99,8 +99,9 @@ export abstract class Route<
 
   private setSearchParam(searchParams: URLSearchParams, key: string, value: any) {
     if (value === undefined || value === null || value === '') return
-    if (Array.isArray(value)) return value.forEach(v => searchParams.append(key, v))
-    searchParams.set(key, typeof value === 'object' ? JSON.stringify(value) : value)
+    const type = this.$paramMetadata[key]
+    if (type.endsWith('[]') && Array.isArray(value)) return value.forEach(v => searchParams.append(key, v))
+    searchParams.set(key, type === 'object' ? JSON.stringify(value) : value)
   }
 
   /**
@@ -117,12 +118,21 @@ export abstract class Route<
     const urlParams: string[] = []
     const path = this.$path.replace(/\/\*$/, '').replace(/\{(\w+)\}/g, (_, match) => {
       urlParams.push(match)
-      return parameters[match]
+      const type = this.$paramMetadata[match]
+      const value = parameters[match]
+      let serialized = `${value}`
+      if (type.endsWith('[]') && Array.isArray(value)) {
+        serialized = value.map(item => typeof item === 'string' ? item.replace(/-/g, '\\-') : item).join('-')
+      }
+      else if (type === 'object') serialized = JSON.stringify(value)
+      return encodeURIComponent(serialized)
     })
     const url = new URL(CitronNavigator.instance?.useHash ? location.pathname : path, location.origin)
     if (CitronNavigator.instance?.useHash) url.hash = `#${path}`
     const newSearchParams = (options?.mergeSearchParameters ? parameters : params) ?? {}
-    Object.keys(this.$paramMetadata).forEach(key => this.setSearchParam(url.searchParams, key, newSearchParams[key]))
+    Object.keys(this.$paramMetadata).forEach(
+      key => !urlParams.includes(key) && this.setSearchParam(url.searchParams, key, newSearchParams[key]),
+    )
     return `${url.pathname}${url.hash}${url.search}`
   }
 
@@ -137,6 +147,9 @@ export abstract class Route<
 
   /**
    * Checks if the key passed as parameter corresponds to this route or a sub-route of this route.
+   * 
+   * Attention: this will only check the format of the key. It won't verify if the route actually exists.
+   * 
    * @param key the key to compare.
    * @returns true if the key is a sub-route (or equal). False otherwise.
    */
@@ -146,6 +159,7 @@ export abstract class Route<
 
   /**
    * Checks if this route corresponds to the key passed as parameter or any sub-route of the key.
+   * 
    * @param key the key to compare.
    * @returns true if this is a sub-route of the key (or equal). False otherwise.
    */
@@ -155,6 +169,9 @@ export abstract class Route<
 
   /**
    * Checks how the path passed as parameter matches this route.
+   * 
+   * Attention: this won't verify if the path corresponds to an actual route. It will make a decision only based in the path's format.
+   * 
    * @param path the path to test this route against
    * @returns
    * - `no-match` if this route and the path passed as parameter are not related.
@@ -191,6 +208,7 @@ export abstract class Route<
    */
   $isSubrouteActive(): boolean {
     const path = CitronNavigator.instance?.getPath()
+    if (!path) return false
     const match = this.$match(path)
     return path !== undefined && (match === 'subroute' || match === 'exact')
   }
