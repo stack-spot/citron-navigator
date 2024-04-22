@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 
-import { readFile } from 'fs/promises'
+import { existsSync } from 'fs'
+import { readFile, unlink } from 'fs/promises'
 import { ConfigParser } from '../src/ConfigParser'
 import { generate } from '../src/generate'
 
@@ -18,6 +19,7 @@ export function expectToThrowWhenParsing(yaml: string, expectedErrorClass: { new
 }
 
 export async function expectToGenerateCode(src: string, out: string) {
+  if (existsSync(out)) await unlink(out)
   const { exitMock, unMockExit } = mockExit()
   await generate({ src, out })
   expect(exitMock).toHaveBeenCalledWith(0)

@@ -6,7 +6,7 @@
     limit: number
     + studio (/{studioId}):
       + stacks (/stacks):
-        tech: array (string[])
+        tech: string[]
         type: string (Navigation.Ownership)
         + stack (/{stackId}/{other}):
           other: object
@@ -15,7 +15,7 @@
           num: number (400 | 500 | 600)
           bool: boolean (false)
           obj: object (Record<string, Navigation.Person>)
-          arr: array (Navigation.Person[])
+          arr: number[]
           doubleArr: object (string[][])
           + starters (/starters):
             + starter (/{starterId}):

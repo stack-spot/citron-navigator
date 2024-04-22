@@ -1,9 +1,9 @@
 {
   "name": "@stack-spot/citron-navigator-cli",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc --declaration",
+    "build": "tsc --project tsconfig.build.json --declaration",
     "test": "jest",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },

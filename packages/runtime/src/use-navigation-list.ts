@@ -5,7 +5,8 @@ import { AnyRoute } from './Route'
 function routeKeyToLabel(key: string) {
   const keyParts = key.split('.')
   const lastKeyPart = keyParts[keyParts.length - 1]
-  return `${lastKeyPart[0].toUpperCase()}${lastKeyPart.substring(1)}`
+  // transforms uppercase letters into spaces + lowercase and capitalizes the first letter.
+  return lastKeyPart.replace(/([A-Z])/g, m => ` ${m.toLowerCase()}`).replace(/^[a-z]/, m => m.toUpperCase())
 }
 
 /**

@@ -401,13 +401,13 @@ import { compareRouteKeysDesc } from '@stack-spot/citron-navigator/dist/utils'
 
 interface RouteParams {
     'root': { create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application' },
+    'root.account': { create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application' },
     'root.studios': { create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', like?: string, limit?: number },
     'root.studios.studio': { studioId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application' },
     'root.studios.studio.stacks': { studioId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', tech?: string[], type?: Navigation.Ownership },
-    'root.studios.studio.stacks.stack': { studioId: string, stackId: number, other: object, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', str?: 'test', num?: 400 | 500 | 600, bool?: false, obj?: Record<string, Navigation.Person>, arr?: Navigation.Person[], doubleArr?: string[][] },
+    'root.studios.studio.stacks.stack': { studioId: string, stackId: number, other: object, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', str?: 'test', num?: 400 | 500 | 600, bool?: false, obj?: Record<string, Navigation.Person>, arr?: number[], doubleArr?: string[][] },
     'root.studios.studio.stacks.stack.starters': { studioId: string, stackId: number, other: object, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', str?: 'test' },
     'root.studios.studio.stacks.stack.starters.starter': { studioId: string, stackId: number, other: object, starterId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', str?: 'test' },
-    'root.studios.studio.stacks.stack.starters.starter.account': { studioId: string, stackId: number, other: object, starterId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', str?: 'test' },
     'root.studios.studio.plugins': { studioId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application' }
 }
 
@@ -422,7 +422,22 @@ class RootRoute extends Route<undefined, RouteParams['root']> {
         )
     }
 
+    account = new AccountRoute(this)
     studios = new StudiosRoute(this)
+}
+
+
+
+class AccountRoute extends Route<RootRoute, RouteParams['root.account']> {
+    constructor(parent: RootRoute) {
+        super(
+            'root.account',
+            '/account', parent,
+            { create: 'string' },
+        )
+    }
+
+
 }
 
 
@@ -461,7 +476,7 @@ class StacksRoute extends Route<StudioRoute, RouteParams['root.studios.studio.st
         super(
             'root.studios.studio.stacks',
             '/studios/{studioId}/stacks', parent,
-            { studioId: 'string', create: 'string', tech: 'array', type: 'string' },
+            { studioId: 'string', create: 'string', tech: 'string[]', type: 'string' },
         )
     }
 
@@ -475,7 +490,7 @@ class StackRoute extends Route<StacksRoute, RouteParams['root.studios.studio.sta
         super(
             'root.studios.studio.stacks.stack',
             '/studios/{studioId}/stacks/{stackId}/{other}', parent,
-            { studioId: 'string', stackId: 'number', other: 'object', create: 'string', str: 'string', num: 'number', bool: 'boolean', obj: 'object', arr: 'array', doubleArr: 'array' },
+            { studioId: 'string', stackId: 'number', other: 'object', create: 'string', str: 'string', num: 'number', bool: 'boolean', obj: 'object', arr: 'number[]', doubleArr: 'object' },
         )
     }
 
@@ -507,20 +522,6 @@ class StarterRoute extends Route<StartersRoute, RouteParams['root.studios.studio
         )
     }
 
-    account = new AccountRoute(this)
-}
-
-
-
-class AccountRoute extends Route<StarterRoute, RouteParams['root.studios.studio.stacks.stack.starters.starter.account']> {
-    constructor(parent: StarterRoute) {
-        super(
-            'root.studios.studio.stacks.stack.starters.starter.account',
-            '/studios/{studioId}/stacks/{stackId}/{other}/starters/{starterId}/account', parent,
-            { studioId: 'string', stackId: 'number', other: 'object', starterId: 'string', create: 'string', str: 'string' },
-        )
-    }
-
 
 }
 
@@ -545,13 +546,13 @@ export const navigator = CitronNavigator.create(root as unknown as Route)
 
 const routeByKey: RouteByKey = {
     'root': root,
+    'root.account': root.account,
     'root.studios': root.studios,
     'root.studios.studio': root.studios.studio,
     'root.studios.studio.stacks': root.studios.studio.stacks,
     'root.studios.studio.stacks.stack': root.studios.studio.stacks.stack,
     'root.studios.studio.stacks.stack.starters': root.studios.studio.stacks.stack.starters,
     'root.studios.studio.stacks.stack.starters.starter': root.studios.studio.stacks.stack.starters.starter,
-    'root.studios.studio.stacks.stack.starters.starter.account': root.studios.studio.stacks.stack.starters.starter.account,
     'root.studios.studio.plugins': root.studios.studio.plugins
 }
 
@@ -559,13 +560,13 @@ const routeByKey: RouteByKey = {
 
 interface RouteByKey {
     'root': RootRoute,
+    'root.account': AccountRoute,
     'root.studios': StudiosRoute,
     'root.studios.studio': StudioRoute,
     'root.studios.studio.stacks': StacksRoute,
     'root.studios.studio.stacks.stack': StackRoute,
     'root.studios.studio.stacks.stack.starters': StartersRoute,
     'root.studios.studio.stacks.stack.starters.starter': StarterRoute,
-    'root.studios.studio.stacks.stack.starters.starter.account': AccountRoute,
     'root.studios.studio.plugins': PluginsRoute
 }
 

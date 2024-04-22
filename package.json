@@ -6,10 +6,13 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "pnpm --filter @stack-spot/citron-navigator-cli test",
+    "test:cli": "pnpm --filter @stack-spot/citron-navigator-cli test",
+    "test:runtime": "pnpm --filter @stack-spot/citron-navigator test",
+    "test": "pnpm test:cli && pnpm test:runtime",
     "build:cli": "pnpm --filter @stack-spot/citron-navigator-cli build",
     "build:runtime": "pnpm --filter @stack-spot/citron-navigator build",
-    "build": "pnpm build:cli && pnpm build:runtime"
+    "build": "pnpm build:cli && pnpm build:runtime",
+    "check-branch": "pnpm test && pnpm build"
   },
   "engines": {
     "node": ">=18",

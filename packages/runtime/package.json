@@ -1,11 +1,11 @@
 {
   "name": "@stack-spot/citron-navigator",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc --declaration && tsc-esm-fix --target='dist'",
+    "build": "tsc --project tsconfig.build.json --declaration && tsc-esm-fix --target='dist'",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "peerDependencies": {
