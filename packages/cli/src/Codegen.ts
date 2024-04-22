@@ -108,12 +108,12 @@ export class Codegen {
         if (CitronNavigator.instance) {
           CitronNavigator.instance.updateNavigationTree(${this.root.name}, '${this.root.globalKey}')
         } else {
-          new CitronNavigator(${this.root.name} as unknown as Route)
+          CitronNavigator.create(${this.root.name} as unknown as Route)
         }
         export const navigator = CitronNavigator.instance!
       `)
     } else {
-      this.code.push(`export const navigator = new CitronNavigator(${this.root.name} as unknown as Route)`)
+      this.code.push(`export const navigator = CitronNavigator.create(${this.root.name} as unknown as Route)`)
     }
   }
 

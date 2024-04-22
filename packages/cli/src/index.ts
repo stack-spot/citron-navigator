@@ -1,3 +1,3 @@
-export { generate } from './run'
+export { generate } from './generate'
 export * from './types'
 

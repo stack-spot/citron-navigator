@@ -1,0 +1,672 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Generate modular: should generate code for child 1`] = `
+"
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Route, CitronNavigator, AnyRouteWithParams } from '@stack-spot/citron-navigator'
+import { ContextualizedRoute, NavigationClauses, VoidOrPromise } from '@stack-spot/citron-navigator/dist/types'
+import { LinkedList } from '@stack-spot/citron-navigator/dist/LinkedList'
+import { compareRouteKeysDesc } from '@stack-spot/citron-navigator/dist/utils'
+
+
+
+interface RouteParams {
+    'root': { search?: string },
+    'root.studio': { studioId: string },
+    'root.studio.stacks': { studioId: string, ownership?: Navigation.Ownership }
+}
+
+
+
+class RootRoute extends Route<undefined, RouteParams['root']> {
+    constructor() {
+        super(
+            'root.studios',
+            '/studios', undefined,
+            { search: 'string' },
+        )
+    }
+
+    studio = new StudioRoute(this)
+}
+
+
+
+class StudioRoute extends Route<RootRoute, RouteParams['root.studio']> {
+    constructor(parent: RootRoute) {
+        super(
+            'root.studios.studio',
+            '/studios/{studioId}', parent,
+            { studioId: 'string' },
+        )
+    }
+
+    stacks = new StacksRoute(this)
+}
+
+
+
+class StacksRoute extends Route<StudioRoute, RouteParams['root.studio.stacks']> {
+    constructor(parent: StudioRoute) {
+        super(
+            'root.studios.studio.stacks',
+            '/studios/{studioId}/stacks', parent,
+            { studioId: 'string', ownership: 'string' },
+        )
+    }
+
+
+}
+
+
+export const root = new RootRoute()
+
+if (CitronNavigator.instance) {
+    CitronNavigator.instance.updateNavigationTree(root, 'root.studios')
+} else {
+    CitronNavigator.create(root as unknown as Route)
+}
+export const navigator = CitronNavigator.instance!
+
+
+
+const routeByKey: RouteByKey = {
+    'root': root,
+    'root.studio': root.studio,
+    'root.studio.stacks': root.studio.stacks
+}
+
+
+
+interface RouteByKey {
+    'root': RootRoute,
+    'root.studio': StudioRoute,
+    'root.studio.stacks': StacksRoute
+}
+
+
+const localToGlobalKeyMap = {
+    'root': 'root.studios',
+    'root.studio': 'root.studios.studio',
+    'root.studio.stacks': 'root.studios.studio.stacks'
+}
+
+
+export type ViewPropsOf<T extends keyof RouteParams> = RouteParams[T] extends void
+    ? { route: RouteByKey[T] }
+    : { route: ContextualizedRoute<RouteByKey[T], RouteParams[T]>, params: RouteParams[T] }
+
+interface NavigationContext {
+    when: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+    whenSubrouteOf: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+    otherwise: (handler: () => VoidOrPromise) => NavigationContext,
+    whenNotFound: (handler: (path: string) => VoidOrPromise) => NavigationContext,
+}
+
+function buildContext(clauses: NavigationClauses) {
+    const context: NavigationContext = {
+        when: (key, handler) => {
+            clauses.when[key] = handler
+            return context
+        },
+        whenSubrouteOf: (key, handler) => {
+            clauses.whenSubrouteOf.push({ key, handler })
+            return context
+        },
+        otherwise: (handler) => {
+            if (clauses.otherwise) {
+                console.warn('Navigation: "otherwise" has been set more than once for the hook "useNavigationContext". Only the last handler will take effect.')
+            }
+            clauses.otherwise = handler
+            return context
+        },
+        whenNotFound: (handler) => {
+            if (clauses.otherwise) {
+                console.warn('Navigation: "whenNotFound" has been set more than once for the hook "useNavigationContext". Only the last handler will take effect.')
+            }
+            clauses.whenNotFound = handler
+            return context
+        },
+    }
+    return context
+}
+
+export function useNavigationContext(navigationHandler: (context: NavigationContext) => void, deps?: any[]) {
+    const queue = useRef<(() => VoidOrPromise)[]>([])
+    const consumer = useRef<Promise<void> | undefined>()
+
+    const runEveryHandlerInQueue = useCallback(async () => {
+        while (queue.current.length) {
+            const handler = queue.current.shift()
+            await handler?.()
+        }
+        consumer.current = undefined
+    }, [])
+
+    const consume = useCallback(() => {
+        consumer.current ??= runEveryHandlerInQueue()
+        return consumer.current
+    }, [])
+
+    useEffect(() => {
+        const clauses: NavigationClauses = { when: {}, whenSubrouteOf: new LinkedList(compareRouteKeysDesc) }
+        navigationHandler(buildContext(clauses))
+        const stopListeningToRouteChanges = navigator.onRouteChangeAsync(async (route, params) => {
+            const when = Object.keys(clauses.when).find(
+                key => route.$is(localToGlobalKeyMap[key as keyof typeof localToGlobalKeyMap]),
+            )
+            if (when) queue.current.push(() => clauses.when[when]({ route, params }))
+            else {
+                const whenSubroute = clauses.whenSubrouteOf.find(
+                    ({ key }) => route.$isSubrouteOf(localToGlobalKeyMap[key as keyof typeof localToGlobalKeyMap]),
+                )
+                if (whenSubroute) {
+                    queue.current.push(() => whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params }))
+                }
+                else if (clauses.otherwise) queue.current.push(clauses.otherwise)
+            }
+            await consume()
+        })
+        const stopListeningToNotFoundEvents = clauses.whenNotFound ? navigator.onNotFound(clauses.whenNotFound) : undefined
+        return () => {
+            stopListeningToRouteChanges()
+            stopListeningToNotFoundEvents?.()
+        }
+    }, [])
+
+    useEffect(() => navigator.updateRoute(), deps ?? [])
+
+    return navigationHandler
+}
+
+interface RouteData<T extends keyof RouteParams> {
+    route: AnyRouteWithParams<Partial<RouteParams[T]>>,
+    params: Partial<RouteParams[T]>,
+}
+
+export function useRouteData<T extends keyof RouteParams>(_key?: T): RouteData<T> {
+    const [data, setData] = useState<RouteData<any>>({ route: navigator.currentRoute ?? root as any, params: navigator.currentParams })
+    useEffect(() => navigator.onRouteChange((route, params) => setData({ route, params })), [])
+    return data as RouteData<T>
+}
+"
+`;
+
+exports[`Generate modular: should generate code for parent 1`] = `
+"
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Route, CitronNavigator, AnyRouteWithParams } from '@stack-spot/citron-navigator'
+import { ContextualizedRoute, NavigationClauses, VoidOrPromise } from '@stack-spot/citron-navigator/dist/types'
+import { LinkedList } from '@stack-spot/citron-navigator/dist/LinkedList'
+import { compareRouteKeysDesc } from '@stack-spot/citron-navigator/dist/utils'
+
+
+
+interface RouteParams {
+    'root': void,
+    'root.account': void,
+    'root.studios': { search?: string },
+    'root.download': { platform?: 'mac' | 'debian' | 'windows' }
+}
+
+
+
+class RootRoute extends Route<undefined, RouteParams['root']> {
+    constructor() {
+        super(
+            'root',
+            '/', undefined,
+            {},
+        )
+    }
+
+    account = new AccountRoute(this)
+    studios = new StudiosRoute(this)
+    download = new DownloadRoute(this)
+}
+
+
+
+class AccountRoute extends Route<RootRoute, RouteParams['root.account']> {
+    constructor(parent: RootRoute) {
+        super(
+            'root.account',
+            '/account/*', parent,
+            {},
+        )
+    }
+
+
+}
+
+
+
+class StudiosRoute extends Route<RootRoute, RouteParams['root.studios']> {
+    constructor(parent: RootRoute) {
+        super(
+            'root.studios',
+            '/studios/*', parent,
+            { search: 'string' },
+        )
+    }
+
+
+}
+
+
+
+class DownloadRoute extends Route<RootRoute, RouteParams['root.download']> {
+    constructor(parent: RootRoute) {
+        super(
+            'root.download',
+            '/download', parent,
+            { platform: 'string' },
+        )
+    }
+
+
+}
+
+
+export const root = new RootRoute()
+export const navigator = CitronNavigator.create(root as unknown as Route)
+
+
+const routeByKey: RouteByKey = {
+    'root': root,
+    'root.account': root.account,
+    'root.studios': root.studios,
+    'root.download': root.download
+}
+
+
+
+interface RouteByKey {
+    'root': RootRoute,
+    'root.account': AccountRoute,
+    'root.studios': StudiosRoute,
+    'root.download': DownloadRoute
+}
+
+
+export type ViewPropsOf<T extends keyof RouteParams> = RouteParams[T] extends void
+    ? { route: RouteByKey[T] }
+    : { route: ContextualizedRoute<RouteByKey[T], RouteParams[T]>, params: RouteParams[T] }
+
+interface NavigationContext {
+    when: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+    whenSubrouteOf: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+    otherwise: (handler: () => VoidOrPromise) => NavigationContext,
+    whenNotFound: (handler: (path: string) => VoidOrPromise) => NavigationContext,
+}
+
+function buildContext(clauses: NavigationClauses) {
+    const context: NavigationContext = {
+        when: (key, handler) => {
+            clauses.when[key] = handler
+            return context
+        },
+        whenSubrouteOf: (key, handler) => {
+            clauses.whenSubrouteOf.push({ key, handler })
+            return context
+        },
+        otherwise: (handler) => {
+            if (clauses.otherwise) {
+                console.warn('Navigation: "otherwise" has been set more than once for the hook "useNavigationContext". Only the last handler will take effect.')
+            }
+            clauses.otherwise = handler
+            return context
+        },
+        whenNotFound: (handler) => {
+            if (clauses.otherwise) {
+                console.warn('Navigation: "whenNotFound" has been set more than once for the hook "useNavigationContext". Only the last handler will take effect.')
+            }
+            clauses.whenNotFound = handler
+            return context
+        },
+    }
+    return context
+}
+
+export function useNavigationContext(navigationHandler: (context: NavigationContext) => void, deps?: any[]) {
+    const queue = useRef<(() => VoidOrPromise)[]>([])
+    const consumer = useRef<Promise<void> | undefined>()
+
+    const runEveryHandlerInQueue = useCallback(async () => {
+        while (queue.current.length) {
+            const handler = queue.current.shift()
+            await handler?.()
+        }
+        consumer.current = undefined
+    }, [])
+
+    const consume = useCallback(() => {
+        consumer.current ??= runEveryHandlerInQueue()
+        return consumer.current
+    }, [])
+
+    useEffect(() => {
+        const clauses: NavigationClauses = { when: {}, whenSubrouteOf: new LinkedList(compareRouteKeysDesc) }
+        navigationHandler(buildContext(clauses))
+        const stopListeningToRouteChanges = navigator.onRouteChangeAsync(async (route, params) => {
+            const when = Object.keys(clauses.when).find(
+                key => route.$is(key),
+            )
+            if (when) queue.current.push(() => clauses.when[when]({ route, params }))
+            else {
+                const whenSubroute = clauses.whenSubrouteOf.find(
+                    ({ key }) => route.$isSubrouteOf(key),
+                )
+                if (whenSubroute) {
+                    queue.current.push(() => whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params }))
+                }
+                else if (clauses.otherwise) queue.current.push(clauses.otherwise)
+            }
+            await consume()
+        })
+        const stopListeningToNotFoundEvents = clauses.whenNotFound ? navigator.onNotFound(clauses.whenNotFound) : undefined
+        return () => {
+            stopListeningToRouteChanges()
+            stopListeningToNotFoundEvents?.()
+        }
+    }, [])
+
+    useEffect(() => navigator.updateRoute(), deps ?? [])
+
+    return navigationHandler
+}
+
+interface RouteData<T extends keyof RouteParams> {
+    route: AnyRouteWithParams<Partial<RouteParams[T]>>,
+    params: Partial<RouteParams[T]>,
+}
+
+export function useRouteData<T extends keyof RouteParams>(_key?: T): RouteData<T> {
+    const [data, setData] = useState<RouteData<any>>({ route: navigator.currentRoute ?? root as any, params: navigator.currentParams })
+    useEffect(() => navigator.onRouteChange((route, params) => setData({ route, params })), [])
+    return data as RouteData<T>
+}
+"
+`;
+
+exports[`Generate should generate code 1`] = `
+"
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Route, CitronNavigator, AnyRouteWithParams } from '@stack-spot/citron-navigator'
+import { ContextualizedRoute, NavigationClauses, VoidOrPromise } from '@stack-spot/citron-navigator/dist/types'
+import { LinkedList } from '@stack-spot/citron-navigator/dist/LinkedList'
+import { compareRouteKeysDesc } from '@stack-spot/citron-navigator/dist/utils'
+
+
+
+interface RouteParams {
+    'root': { create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application' },
+    'root.account': { create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application' },
+    'root.studios': { create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', like?: string, limit?: number },
+    'root.studios.studio': { studioId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application' },
+    'root.studios.studio.stacks': { studioId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', tech?: string[], type?: Navigation.Ownership },
+    'root.studios.studio.stacks.stack': { studioId: string, stackId: number, other: object, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', str?: 'test', num?: 400 | 500 | 600, bool?: false, obj?: Record<string, Navigation.Person>, arr?: number[], doubleArr?: string[][] },
+    'root.studios.studio.stacks.stack.starters': { studioId: string, stackId: number, other: object, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', str?: 'test' },
+    'root.studios.studio.stacks.stack.starters.starter': { studioId: string, stackId: number, other: object, starterId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application', str?: 'test' },
+    'root.studios.studio.plugins': { studioId: string, create?: 'studio' | 'workspace' | 'environment' | 'stack' | 'shared-infra' | 'api' | 'application' }
+}
+
+
+
+class RootRoute extends Route<undefined, RouteParams['root']> {
+    constructor() {
+        super(
+            'root',
+            '/', undefined,
+            { create: 'string' },
+        )
+    }
+
+    account = new AccountRoute(this)
+    studios = new StudiosRoute(this)
+}
+
+
+
+class AccountRoute extends Route<RootRoute, RouteParams['root.account']> {
+    constructor(parent: RootRoute) {
+        super(
+            'root.account',
+            '/account', parent,
+            { create: 'string' },
+        )
+    }
+
+
+}
+
+
+
+class StudiosRoute extends Route<RootRoute, RouteParams['root.studios']> {
+    constructor(parent: RootRoute) {
+        super(
+            'root.studios',
+            '/studios', parent,
+            { create: 'string', like: 'string', limit: 'number' },
+        )
+    }
+
+    studio = new StudioRoute(this)
+}
+
+
+
+class StudioRoute extends Route<StudiosRoute, RouteParams['root.studios.studio']> {
+    constructor(parent: StudiosRoute) {
+        super(
+            'root.studios.studio',
+            '/studios/{studioId}', parent,
+            { studioId: 'string', create: 'string' },
+        )
+    }
+
+    stacks = new StacksRoute(this)
+    plugins = new PluginsRoute(this)
+}
+
+
+
+class StacksRoute extends Route<StudioRoute, RouteParams['root.studios.studio.stacks']> {
+    constructor(parent: StudioRoute) {
+        super(
+            'root.studios.studio.stacks',
+            '/studios/{studioId}/stacks', parent,
+            { studioId: 'string', create: 'string', tech: 'string[]', type: 'string' },
+        )
+    }
+
+    stack = new StackRoute(this)
+}
+
+
+
+class StackRoute extends Route<StacksRoute, RouteParams['root.studios.studio.stacks.stack']> {
+    constructor(parent: StacksRoute) {
+        super(
+            'root.studios.studio.stacks.stack',
+            '/studios/{studioId}/stacks/{stackId}/{other}', parent,
+            { studioId: 'string', stackId: 'number', other: 'object', create: 'string', str: 'string', num: 'number', bool: 'boolean', obj: 'object', arr: 'number[]', doubleArr: 'object' },
+        )
+    }
+
+    starters = new StartersRoute(this)
+}
+
+
+
+class StartersRoute extends Route<StackRoute, RouteParams['root.studios.studio.stacks.stack.starters']> {
+    constructor(parent: StackRoute) {
+        super(
+            'root.studios.studio.stacks.stack.starters',
+            '/studios/{studioId}/stacks/{stackId}/{other}/starters', parent,
+            { studioId: 'string', stackId: 'number', other: 'object', create: 'string', str: 'string' },
+        )
+    }
+
+    starter = new StarterRoute(this)
+}
+
+
+
+class StarterRoute extends Route<StartersRoute, RouteParams['root.studios.studio.stacks.stack.starters.starter']> {
+    constructor(parent: StartersRoute) {
+        super(
+            'root.studios.studio.stacks.stack.starters.starter',
+            '/studios/{studioId}/stacks/{stackId}/{other}/starters/{starterId}', parent,
+            { studioId: 'string', stackId: 'number', other: 'object', starterId: 'string', create: 'string', str: 'string' },
+        )
+    }
+
+
+}
+
+
+
+class PluginsRoute extends Route<StudioRoute, RouteParams['root.studios.studio.plugins']> {
+    constructor(parent: StudioRoute) {
+        super(
+            'root.studios.studio.plugins',
+            '/studios/{studioId}/plugins', parent,
+            { studioId: 'string', create: 'string' },
+        )
+    }
+
+
+}
+
+
+export const root = new RootRoute()
+export const navigator = CitronNavigator.create(root as unknown as Route)
+
+
+const routeByKey: RouteByKey = {
+    'root': root,
+    'root.account': root.account,
+    'root.studios': root.studios,
+    'root.studios.studio': root.studios.studio,
+    'root.studios.studio.stacks': root.studios.studio.stacks,
+    'root.studios.studio.stacks.stack': root.studios.studio.stacks.stack,
+    'root.studios.studio.stacks.stack.starters': root.studios.studio.stacks.stack.starters,
+    'root.studios.studio.stacks.stack.starters.starter': root.studios.studio.stacks.stack.starters.starter,
+    'root.studios.studio.plugins': root.studios.studio.plugins
+}
+
+
+
+interface RouteByKey {
+    'root': RootRoute,
+    'root.account': AccountRoute,
+    'root.studios': StudiosRoute,
+    'root.studios.studio': StudioRoute,
+    'root.studios.studio.stacks': StacksRoute,
+    'root.studios.studio.stacks.stack': StackRoute,
+    'root.studios.studio.stacks.stack.starters': StartersRoute,
+    'root.studios.studio.stacks.stack.starters.starter': StarterRoute,
+    'root.studios.studio.plugins': PluginsRoute
+}
+
+
+export type ViewPropsOf<T extends keyof RouteParams> = RouteParams[T] extends void
+    ? { route: RouteByKey[T] }
+    : { route: ContextualizedRoute<RouteByKey[T], RouteParams[T]>, params: RouteParams[T] }
+
+interface NavigationContext {
+    when: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+    whenSubrouteOf: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+    otherwise: (handler: () => VoidOrPromise) => NavigationContext,
+    whenNotFound: (handler: (path: string) => VoidOrPromise) => NavigationContext,
+}
+
+function buildContext(clauses: NavigationClauses) {
+    const context: NavigationContext = {
+        when: (key, handler) => {
+            clauses.when[key] = handler
+            return context
+        },
+        whenSubrouteOf: (key, handler) => {
+            clauses.whenSubrouteOf.push({ key, handler })
+            return context
+        },
+        otherwise: (handler) => {
+            if (clauses.otherwise) {
+                console.warn('Navigation: "otherwise" has been set more than once for the hook "useNavigationContext". Only the last handler will take effect.')
+            }
+            clauses.otherwise = handler
+            return context
+        },
+        whenNotFound: (handler) => {
+            if (clauses.otherwise) {
+                console.warn('Navigation: "whenNotFound" has been set more than once for the hook "useNavigationContext". Only the last handler will take effect.')
+            }
+            clauses.whenNotFound = handler
+            return context
+        },
+    }
+    return context
+}
+
+export function useNavigationContext(navigationHandler: (context: NavigationContext) => void, deps?: any[]) {
+    const queue = useRef<(() => VoidOrPromise)[]>([])
+    const consumer = useRef<Promise<void> | undefined>()
+
+    const runEveryHandlerInQueue = useCallback(async () => {
+        while (queue.current.length) {
+            const handler = queue.current.shift()
+            await handler?.()
+        }
+        consumer.current = undefined
+    }, [])
+
+    const consume = useCallback(() => {
+        consumer.current ??= runEveryHandlerInQueue()
+        return consumer.current
+    }, [])
+
+    useEffect(() => {
+        const clauses: NavigationClauses = { when: {}, whenSubrouteOf: new LinkedList(compareRouteKeysDesc) }
+        navigationHandler(buildContext(clauses))
+        const stopListeningToRouteChanges = navigator.onRouteChangeAsync(async (route, params) => {
+            const when = Object.keys(clauses.when).find(
+                key => route.$is(key),
+            )
+            if (when) queue.current.push(() => clauses.when[when]({ route, params }))
+            else {
+                const whenSubroute = clauses.whenSubrouteOf.find(
+                    ({ key }) => route.$isSubrouteOf(key),
+                )
+                if (whenSubroute) {
+                    queue.current.push(() => whenSubroute.handler({ route: routeByKey[whenSubroute.key as keyof RouteByKey], params }))
+                }
+                else if (clauses.otherwise) queue.current.push(clauses.otherwise)
+            }
+            await consume()
+        })
+        const stopListeningToNotFoundEvents = clauses.whenNotFound ? navigator.onNotFound(clauses.whenNotFound) : undefined
+        return () => {
+            stopListeningToRouteChanges()
+            stopListeningToNotFoundEvents?.()
+        }
+    }, [])
+
+    useEffect(() => navigator.updateRoute(), deps ?? [])
+
+    return navigationHandler
+}
+
+interface RouteData<T extends keyof RouteParams> {
+    route: AnyRouteWithParams<Partial<RouteParams[T]>>,
+    params: Partial<RouteParams[T]>,
+}
+
+export function useRouteData<T extends keyof RouteParams>(_key?: T): RouteData<T> {
+    const [data, setData] = useState<RouteData<any>>({ route: navigator.currentRoute ?? root as any, params: navigator.currentParams })
+    useEffect(() => navigator.onRouteChange((route, params) => setData({ route, params })), [])
+    return data as RouteData<T>
+}
+"
+`;

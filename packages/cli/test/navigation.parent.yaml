@@ -1,0 +1,6 @@
++ root (/):
+  + account (/account/*):
+  + studios (/studios/*):
+    search: string
+  + download (/download):
+    platform: string ('mac' | 'debian' | 'windows')

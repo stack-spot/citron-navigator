@@ -1,4 +1,4 @@
-import { Route } from './Route'
+import { AnyRoute, Route } from './Route'
 import { NavigationError } from './errors'
 import { removeElementFromArray, splitPath } from './utils'
 
@@ -6,25 +6,50 @@ type NotFoundListener = (path: string) => void
 type RouteChangeListener = (route: Route, params: Record<string, any>) => void
 type AsyncRouteChangeListener = (route: Route, params: Record<string, any>) => Promise<void> | void
 
+/**
+ * Singleton. This is the application's navigator (Citron Navigator).
+ * 
+ * To create a CitronNavigator instance, call `CitronNavigator.create`. If there's not yet an instance, it will create one, otherwise, it
+ * will return the existing instance.
+ * 
+ * To access the current instance, use `CitronNavigator.instance`, which will be undefined if no instance has been created yet.
+ */
 export class CitronNavigator {
-  private root: Route
+  private root: AnyRoute
   private notFoundListeners: NotFoundListener[] = []
   private routeChangeListeners: RouteChangeListener[] = []
   private asyncRouteChangeListeners: AsyncRouteChangeListener[] = []
-  currentRoute: Route | undefined
+  currentRoute: AnyRoute | undefined
   currentParams: Record<string, any> = {}
   useHash: boolean
-  static readonly instance: CitronNavigator
+  static readonly instance: CitronNavigator | undefined
 
-  constructor(root: Route, useHash = true) {
-    // @ts-ignore
-    CitronNavigator.instance = this
+  private constructor(root: AnyRoute, useHash = true) {
     this.root = root
     this.useHash = useHash
     window.addEventListener('popstate', () => this.updateRoute())
     this.updateRoute()
   }
 
+  /**
+   * Creates a navigator if none has been created yet. Otherwise, returns the current navigator.
+   * @param root the navigation tree.
+   * @param useHash whether or not to use hash-based urls (domain/#/path). The default is true.
+   * @returns the navigator
+   */
+  static create(root: AnyRoute, useHash = true) {
+    // @ts-ignore: should be read-only for external code only
+    CitronNavigator.instance ??= new CitronNavigator(root, useHash)
+    return CitronNavigator.instance
+  }
+
+  /**
+   * Updates the navigation tree by replacing a node for another.
+   * 
+   * This is used by modular navigation. A module can load more routes into the tree.
+   * @param route the node to enter the tree.
+   * @param keyToReplace the key of the node to be replaces.
+   */
   updateNavigationTree(route: Route<any, any, any>, keyToReplace: string) {
     let oldRoute: any = this.root
     const reminderKey = keyToReplace.replace(new RegExp(`^${this.root.$key}\\.?`), '')
@@ -34,7 +59,7 @@ export class CitronNavigator {
       throw new Error(`Navigation error: cannot update navigation tree at route with key "${keyToReplace}" because the key doesn't exist.`)
     }
     if (oldRoute === this.root) {
-      this.root = oldRoute
+      this.root = route
     } else {
       route.$parent = oldRoute.$parent
       oldRoute.$parent[keyParts[keyParts.length - 1]] = route
@@ -42,13 +67,26 @@ export class CitronNavigator {
     this.updateRoute()
   }
 
+  /**
+   * Gets the path of the provided url (considering hash-based paths).
+   * 
+   * Examples:
+   * - "https://www.stackspot.com/pt/ai-assistente" (useHash = false): "pt/ai-assistente".
+   * - "https://www.stackspot.com/#/pt/ai-assistente" (useHash = true): "pt/ai-assistente".
+   * 
+   * @param url the url to extract the path from. The current url (window.location) is used if none is provided. 
+   * @returns the path part of the url.
+   */
   getPath(url: URL = new URL(location.toString())) {
-    return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname
+    return this.useHash ? url.hash.replace(/^\/?#\/?/, '').replace(/\?.*/, '') : url.pathname.replace(/^\//, '')
   }
 
-  updateRoute() {
+  /**
+   * Updates the current route according to the current URL.
+   */
+  async updateRoute() {
     const route = this.findRouteByPath(this.root, this.getPath())
-    if (route) this.handleRouteChange(route)
+    if (route) await this.handleRouteChange(route)
     else this.handleNotFound()
   }
 
@@ -79,9 +117,10 @@ export class CitronNavigator {
   }
 
   private handleNotFound() {
+    const path = this.getPath()
     // eslint-disable-next-line no-console
-    console.error(new NavigationError(`route not registered (${location.pathname})`).message)
-    this.notFoundListeners.forEach(l => l(location.pathname))
+    console.error(new NavigationError(`route not registered (${path})`).message)
+    this.notFoundListeners.forEach(l => l(path))
   }
 
   private paramTypeError(key: string, value: string, type: string, routeKey: string, interpretingAs: string = 'a raw string') {
@@ -90,61 +129,49 @@ export class CitronNavigator {
     ).message
   }
 
-  private deserializeUrlParam(key: string, value: string): any {
+  private deserializeNumber(key: string, value: string) {
+    const deserialized = parseFloat(value)
+    // eslint-disable-next-line no-console
+    if (isNaN(deserialized)) console.error(this.paramTypeError(key, value, 'number', this.currentRoute?.$key ?? 'unknown', 'NaN'))
+    return deserialized
+  }
+
+  private deserializeBoolean(key: string, value: string) {
+    if (value === 'true' || value === '') return true
+    if (value === 'false') return false
+    // eslint-disable-next-line no-console
+    console.error(this.paramTypeError(key, value, 'boolean', this.currentRoute?.$key ?? 'unknown', 'true'))
+    return true
+  }
+
+  private deserializeParameter(key: string, values: string[]): any {
+    const value = values[0]
     if (!this.currentRoute) return value
     const type = this.currentRoute.$paramMetadata[key]
     switch (type) {
       case 'string': return value
-      case 'number':
-        try {
-          return value.includes('.') ? parseFloat(value) : parseInt(value)
-        } catch {
-          // eslint-disable-next-line no-console
-          console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
-          return value
-        }
-      case 'boolean':
-        if (value === 'true' || value === '') return true
-        if (value === 'false') return false
-        // eslint-disable-next-line no-console
-        console.error(this.paramTypeError(key, value, type, this.currentRoute.$key, 'true'))
-        return true
-      case 'array':
-        try {
-          const parsed = JSON.parse(value)
-          if (Array.isArray(parsed)) return parsed
-          // eslint-disable-next-line no-console
-          console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
-          return value
-        } catch {
-          // eslint-disable-next-line no-console
-          console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
-          return value
-        }
+      case 'number': return this.deserializeNumber(key, value)
+      case 'boolean': return this.deserializeBoolean(key, value)
+      case 'string[]': return values
+      case 'number[]': return values.map(v => this.deserializeNumber(key, v))
+      case 'boolean[]': return values.map(v => this.deserializeBoolean(key, v))
       case 'object':
         try {
-          const parsed = JSON.parse(value)
-          if (typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
-          // eslint-disable-next-line no-console
-          console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
-          return value
+          return JSON.parse(value)
         } catch {
           // eslint-disable-next-line no-console
           console.error(this.paramTypeError(key, value, type, this.currentRoute.$key))
           return value
         }
-      default:
-        // eslint-disable-next-line no-console
-        console.warn(`Navigation: extra parameter found for route "${this.currentRoute.$key}": "${key}". The navigator will interpret it as a string.`)
-        return value
     }
   }
 
   private extractQueryParams(url: URL) {
     const params = this.useHash ? new URLSearchParams(url.hash.replace(/[^?]*\??/, '')) : url.searchParams
     const result: Record<string, any> = {}
-    params.forEach((value, key) => {
-      result[key] = this.deserializeUrlParam(key, value)
+    params.forEach((_, name) => {
+      if (name in result) return
+      result[name] = this.deserializeParameter(name, params.getAll(name))
     })
     return result
   }
@@ -153,9 +180,16 @@ export class CitronNavigator {
     const result: Record<string, any> = {}
     const routeParts = splitPath(this.currentRoute?.$path)
     const urlParts = splitPath(this.getPath(url))
+    const paramMetadata = this.currentRoute?.$paramMetadata ?? {}
     routeParts.forEach((value, index) => {
       const [, key] = value.match(/\{(\w+)\}/) ?? []
-      if (key) result[key] = this.deserializeUrlParam(key, decodeURIComponent(urlParts[index]))
+      const paramStringValue = decodeURIComponent(urlParts[index])
+      /* if the parameter is supposed to be an array, get all of its values by splitting the string by "-" (considering "\" as a escape
+      character). */
+      const paramArrayValue = paramMetadata[key]?.endsWith('[]')
+        ? paramStringValue.split(/(?<!\\)-/).map(item => item.replace(/\\-/g, '-'))
+        : [paramStringValue]
+      if (key) result[key] = this.deserializeParameter(key, paramArrayValue)
     })
     return result
   }
@@ -169,14 +203,35 @@ export class CitronNavigator {
     }
   }
 
+  /**
+   * Adds a listener for changes to the route.
+   * 
+   * If you need a listener that runs asynchronously, consider using `onRouteChangeAsync`.
+   * @param listener a function called when the route changes.
+   * @returns a function that, when called, removes the listener.
+   */
   onRouteChange(listener: RouteChangeListener): () => void {
     return this.addRouteChangeListener(listener, false)
   }
 
+  /**
+   * Adds a listener for changes to the route. This listener can be async (return a promise).
+   * 
+   * Asynchronous listeners are run before every synchronous listener. Synchronous listeners are only run once all async listeners finish
+   * running.
+   * @param listener a function called when the route changes.
+   * @returns a function that, when called, removes the listener.
+   */
   onRouteChangeAsync(listener: AsyncRouteChangeListener): () => void {
     return this.addRouteChangeListener(listener, true)
   }
 
+  /**
+   * Adds a listener that runs when a navigation is performed to a route that doesn't exist.
+   * 
+   * @param listener a function called when the route is not found.
+   * @returns a function that, when called, removes the listener.
+   */
   onNotFound(listener: NotFoundListener): () => void {
     this.notFoundListeners.push(listener)
     return () => {
