@@ -236,7 +236,9 @@ export class Codegen {
           }
         }, [])
 
-        useEffect(() => navigator.updateRoute(), deps ?? [])
+        useEffect(() => {
+          navigator.updateRoute()
+        }, deps ?? [])
 
         return navigationHandler
       }
