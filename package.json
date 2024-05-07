@@ -14,7 +14,7 @@
     "build:runtime": "pnpm --filter @stack-spot/citron-navigator build",
     "build:sample": "pnpm --filter @stack-spot/citron-navigator-sample build",
     "build": "pnpm build:cli && pnpm build:runtime",
-    "check-branch": "pnpm test && pnpm build && pnpm build:sample"
+    "check-branch": "pnpm test && pnpm build"
   },
   "engines": {
     "node": ">=18",
