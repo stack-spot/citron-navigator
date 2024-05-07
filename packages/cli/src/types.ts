@@ -30,6 +30,7 @@ export interface ProgramArguments {
   src: string,
   out: string,
   baseDir?: string,
+  useHash?: boolean,
 }
 
 export interface Config {

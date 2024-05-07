@@ -1,6 +1,6 @@
 {
   "name": "@stack-spot/citron-navigator-cli",
-  "version": "0.0.10",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc --project tsconfig.build.json --declaration",
@@ -8,7 +8,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "bin": {
-    "generate:navigation": "./dist/run.js"
+    "citron": "./dist/run.js"
   },
   "dependencies": {
     "typescript-formatter": "^7.2.2",

@@ -19,8 +19,8 @@ For every example in this page, we'll consider the following configuration
 ```yaml
 + root (/):
   + account (/account):
-    + profile: (/profile):
-    + changePassword: (/password):
+    + profile (/profile):
+    + changePassword (/password):
     + billing (/billing):
       year: number
   + photoAlbums (/albums):
@@ -39,7 +39,7 @@ For every example in this page, we'll consider the following configuration
 ## Rendering a view based on the current route
 ```tsx
 export const Page = () => {
-  const [content, setContent] = useState<React.Element>(<></>)
+  const [content, setContent] = useState<React.ReactElement>(<></>)
   
   useNavigationContext((context) => {
     context
@@ -91,7 +91,7 @@ The route is also used to make changes to the variables in the url. If we are at
 `search`, for instance, we just need to call `route.$go({ search: 'new value' })`. The URL will be updated, and the value of `params.search`
 in the component props, will change.
 
-To know more about what you can do with the Route object, check its documentation [here](todo).
+To know more about what you can do with the Route object, check its documentation [here](route-object.md).
 
 #### params
 An object containing all route parameters and search parameters. The values received here are ready to use, i.e. they are already
@@ -145,4 +145,4 @@ export const MainMenu = () => (
 ```
 
 ## Asynchronous route rendering
-Check the documentation for async rendering [here](todo).
+Check the documentation for async rendering [here](async-route-rendering.md).

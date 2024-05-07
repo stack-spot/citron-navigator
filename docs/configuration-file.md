@@ -191,4 +191,4 @@ application:
 The search parameter "language" will exist in "root", "account" and "photos".
 
 ## Wildcards and route links
-Check the [documentation for modular applications](todo) for more details.
+Check the [documentation for modular applications](modular.md) for more details.
