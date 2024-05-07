@@ -9,10 +9,12 @@ export class Codegen {
   private code: string[] = []
   private keyToClassName: Map<string, string> = new Map()
   private isModule: boolean
+  private useHash: boolean
 
-  constructor({ root, isModule }: Config) {
+  constructor({ root, isModule }: Config, useHash = true) {
     this.isModule = isModule
     this.root = root
+    this.useHash = useHash
     this.routes = this.getRouteList(root)
     this.routes.forEach(r => this.createClassName(r.localKey))
     this.write()
@@ -113,7 +115,7 @@ export class Codegen {
         export const navigator = CitronNavigator.instance!
       `)
     } else {
-      this.code.push(`export const navigator = CitronNavigator.create(${this.root.name} as unknown as Route)`)
+      this.code.push(`export const navigator = CitronNavigator.create(${this.root.name} as unknown as Route, ${this.useHash})`)
     }
   }
 

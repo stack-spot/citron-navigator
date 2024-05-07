@@ -18,10 +18,10 @@ export function expectToThrowWhenParsing(yaml: string, expectedErrorClass: { new
   }
 }
 
-export async function expectToGenerateCode(src: string, out: string) {
+export async function expectToGenerateCode(src: string, out: string, useHash = true) {
   if (existsSync(out)) await unlink(out)
   const { exitMock, unMockExit } = mockExit()
-  await generate({ src, out })
+  await generate({ src, out, useHash })
   expect(exitMock).toHaveBeenCalledWith(0)
   unMockExit()
   const content = await readFile(out, { encoding: 'utf-8' })

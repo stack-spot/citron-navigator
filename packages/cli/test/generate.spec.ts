@@ -7,16 +7,18 @@ describe('Generate', () => {
   it('should use default arguments', () => {
     process.argv = ['/execPath', '/jsPath']
     const args = getArguments()
-    expect(args).toMatchObject({ src: 'navigation.yaml', out: 'src/generated/navigation.ts' })
+    expect(args).toMatchObject({ src: 'navigation.yaml', out: 'src/generated/navigation.ts', useHash: true })
   })
 
   it('should use custom arguments', () => {
-    process.argv = ['/execPath', '/jsPath', '--src=custom-file.yaml', '--out=src/custom.ts']
+    process.argv = ['/execPath', '/jsPath', '--src=custom-file.yaml', '--out=src/custom.ts', '--useHash=false']
     const args = getArguments()
-    expect(args).toMatchObject({ src: 'custom-file.yaml', out: 'src/custom.ts' })
+    expect(args).toMatchObject({ src: 'custom-file.yaml', out: 'src/custom.ts', useHash: false })
   })
 
-  it('should generate code', () => expectToGenerateCode('test/navigation.yaml', 'test/generated/navigation.ts'))
+  it('should generate code with useHash = true', () => expectToGenerateCode('test/navigation.yaml', 'test/generated/navigation.ts'))
+
+  it('should generate code with useHash = false', () => expectToGenerateCode('test/navigation.yaml', 'test/generated/navigation.ts', false))
 
   it(
     'modular: should generate code for parent',

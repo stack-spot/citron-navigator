@@ -130,6 +130,7 @@ When creating links or navigating to other pages, the type will always be checke
 `photoId` when creating a link to "photo", we'd get a type error and the code wouldn't build.
 
 ## Installation
+We're going to use [PNPM](https://pnpm.io) throughout this documentation, but feel free to use either NPM or YARN.
 ```sh
 pnpm add -D @stack-spot/citron-navigator-cli
 pnpm add @stack-spot/citron-navigator
@@ -161,32 +162,34 @@ You should do the same to whatever bundler you're using. In Vite, for instance, 
 
 ## Source code generation
 ```sh
-pnpm generate:navigation
+pnpm citron
 ```
 
 By default it will get the definitions from `navigation.yaml` and output the generated code to `src/generated/navigation.ts`. If you need
 to change this, pass the options `--src` and `--out`.
 
-It's a good idea to call `generate:navigation` before running the application locally or building, check the example below for Vite:
+The navigator uses hash-based URLs by default (/#/route). To change this behavior, you can pass the option `--useHash=false` to the command
+`citron`.
+
+It's a good idea to call `citron` before running the application locally or building, check the example below for Vite:
 
 `package.json:`
 ```json
 {
   "scripts": {
-    "start": "generate:navigation && vite --port 3000",
-    "build": "generate:navigation && tsc && vite build --mode production",
+    "start": "citron && vite --port 3000",
+    "build": "citron && tsc && vite build --mode production",
   }
 }
 ```
 
 ## Documentation
-- [Introductory article](todo)
-- [Sample project](todo)
+- [Sample project](https://github.com/stack-spot/citron-navigator/blob/main/packages/sample)
 - [Configuration file (yaml)](https://github.com/stack-spot/citron-navigator/blob/main/docs/configuration-file.md)
 - [Route-based rendering](https://github.com/stack-spot/citron-navigator/blob/main/docs/route-based-rendering.md)
 - [Loading routes asynchronously](https://github.com/stack-spot/citron-navigator/blob/main/docs/async-route-rendering.md)
-- [Navigation](todo)
+- [Navigation](https://github.com/stack-spot/citron-navigator/blob/main/docs/navihgation.md)
 - [The Route object](https://github.com/stack-spot/citron-navigator/blob/main/docs/route-object.md)
 - [Hooks](https://github.com/stack-spot/citron-navigator/blob/main/docs/hooks.md)
-- [Parameter serialization/deserialization](todo)
-- [Modular projects](todo)
+- [Parameter serialization/deserialization](https://github.com/stack-spot/citron-navigator/blob/main/docs/serialization.md)
+- [Modular applications](https://github.com/stack-spot/citron-navigator/blob/main/docs/module.md)
