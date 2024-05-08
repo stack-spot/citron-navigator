@@ -23,8 +23,8 @@ hard to force a developer to always use the "correct way of navigating" that we 
 times we'd have no type-check at all and it can become very easy to go to page that requires a variable without passing this variable.
 
 Another big problem we faced without typed-navigation was getting the search parameters in a page. How would the developer know what search
-parameters the page can receive, where are they defined? How does the programmer make changes to these parameters? What's the correct way to
-deserialize the string in the URL?
+parameters the page can receive, where are they defined? How does the programmer make changes to these parameters? What's the correct way
+to deserialize the string in the URL?
 
 It can become quite complex to manage url variables in a large application, we needed a library that would take care of this for us, so we
 created Citron Navigator.
