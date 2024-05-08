@@ -72,8 +72,8 @@ const Album = ({ route, params: { albumId, limit, page } }: ViewPropsOf<'root.ph
   <p>Album {albumId}</p>
   <p>limit is {limit}</p>
   <p>page is {page}</p>
-  <p><a href={route.$parent.$link()}>Go back to albums</a></p>
-  <p><a href={route.photo.$link({ photoId: '001' })}>Check out this picture</a></p>
+  <p><Link to={route.$parent}>Go back to albums</Link></p>
+  <p><Link to={route.photo} params={{ photoId: '001' }}>Check out this picture</Link></p>
 )
 ```
 
@@ -122,10 +122,10 @@ Just like a view, here we need a React component that accepts as prop the type `
 ```tsx
 export const AccountMenu = ({ route }: ViewPropsOf<'root.account'>) => (
   <ul>
-    <li><a href={route.$link()} className={route.$isActive() ? 'active' : ''}>Dashboard</a></li>
-    <li><a href={route.profile.$link()} className={route.profile.$isActive() ? 'active' : ''}>Profile</a></li>
-    <li><a href={route.changePassword.$link()} className={route.changePassword.$isActive() ? 'active' : ''}>Change password</a></li>
-    <li><a href={route.billing.$link()} className={route.billing.$isActive() ? 'active' : ''}>Billing</a></li>
+    <li><Link to={route} className={route.$isActive() ? 'active' : ''}>Dashboard</Link></li>
+    <li><Link to={route.profile} className={route.profile.$isActive() ? 'active' : ''}>Profile</Link></li>
+    <li><Link to={route.changePassword} className={route.changePassword.$isActive() ? 'active' : ''}>Change password</Link></li>
+    <li><Link to={route.billing} className={route.billing.$isActive() ? 'active' : ''}>Billing</Link></li>
   </ul>
 )
 ```
@@ -137,9 +137,9 @@ import { root } from 'src/generated/navigation' // replace this import for what 
 
 export const MainMenu = () => (
   <ul>
-    <li><a href={root.$link()} className={root.$isActive() ? 'active' : ''}>Home</a></li>
-    <li><a href={root.account.$link()}>Account</a></li>
-    <li><a href={root.photoAlbums.$link()}>Photo albums</a></li>
+    <li><Link to={root} className={root.$isActive() ? 'active' : ''}>Home</Link></li>
+    <li><Link to={root.account}>Account</Link></li>
+    <li><Link to={root.photoAlbums}>Photo albums</Link></li>
   </ul>
 )
 ```

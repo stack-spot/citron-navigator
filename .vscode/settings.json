@@ -15,6 +15,7 @@
   "typescript.format.semicolons": "remove",
   "cSpell.words": [
     "subroute",
-    "Subroute"
+    "Subroute",
+    "testid"
   ],
 }
