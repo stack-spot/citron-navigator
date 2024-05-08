@@ -1,7 +1,7 @@
 import { LinkedList } from './LinkedList'
 import { Route } from './Route'
 
-type RequiredKeysOf<T> = Exclude<{
+export type RequiredKeysOf<T> = Exclude<{
   [K in keyof T]: T extends Record<K, T[K]>
     ? K
     : never

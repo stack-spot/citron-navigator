@@ -1,3 +1,4 @@
+import { Link } from '@stack-spot/citron-navigator'
 import { ViewPropsOf } from '../generated/navigation'
 
 export const Albums = ({ route }: ViewPropsOf<'root.photoAlbums'>) => (
@@ -5,10 +6,10 @@ export const Albums = ({ route }: ViewPropsOf<'root.photoAlbums'>) => (
     <h1>Albums</h1>
     <nav>
       <ul>
-        <li><a href={route.$parent.$link()}>Go back</a></li>
-        <li><a href={route.album.$link({ albumId: '1' })}>Album 1</a></li>
-        <li><a href={route.album.$link({ albumId: '2', limit: 20, page: 5 })}>Album 2: page 5, 20 photos per page</a></li>
-        <li><a href={route.album.$link({ albumId: '3' })}>Album 3</a></li>
+        <li><Link to={route.$parent}>Go back</Link></li>
+        <li><Link to={route.album} params={{ albumId: '1' }}>Album 1</Link></li>
+        <li><Link to={route.album} params={{ albumId: '2', limit: 20, page: 5 }}>Album 2: page 5, 20 photos per page</Link></li>
+        <li><Link to={route.album} params={{ albumId: '3' }}>Album 3</Link></li>
       </ul>
     </nav>
   </div>

@@ -6,7 +6,7 @@ const config: Config = {
   verbose: true,
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  testMatch: ['**/test/**/*.spec.ts'],
+  testMatch: ['**/test/**/*.spec.{ts,tsx}'],
 }
 
 export default config

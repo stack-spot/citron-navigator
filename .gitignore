@@ -25,3 +25,7 @@ dist-ssr
 
 # Generated code
 generated
+
+# Copied readmes
+packages/cli/README.md
+packages/runtime/README.md

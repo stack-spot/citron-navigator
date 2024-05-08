@@ -1,21 +1,24 @@
 {
   "name": "@stack-spot/citron-navigator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --project tsconfig.build.json --declaration && tsc-esm-fix --target='dist'",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "copy-readme": "ts-node ../../scripts/copy-readme.ts",
+    "prepublishOnly": "pnpm copy-readme"
   },
   "peerDependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": ">=18.2.0",
+    "react-dom": ">=18.2.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^15.0.7",
     "@types/jest": "^29.5.12",
-    "@types/react": "^18.2.37",
-    "@types/react-dom": "^18.2.15",
+    "@types/react": "18.2.66",
+    "@types/react-dom": "18.2.22",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
     "@typescript-eslint/parser": "^6.10.0",
     "eslint": "^8.53.0",
@@ -29,6 +32,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
     "tsc-esm-fix": "^2.20.26",
     "typescript": "^5.2.2"
   }

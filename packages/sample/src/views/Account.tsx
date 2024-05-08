@@ -1,3 +1,4 @@
+import { Link } from '@stack-spot/citron-navigator'
 import { ViewPropsOf } from '../generated/navigation'
 
 export const Account = ({ route }: ViewPropsOf<'root.account'>) => (
@@ -5,10 +6,10 @@ export const Account = ({ route }: ViewPropsOf<'root.account'>) => (
     <h1>Account</h1>
     <nav>
       <ul>
-        <li><a href={route.$parent.$link()}>Go back</a></li>
-        <li><a href={route.billing.$link({ year: 2024 })}>Billing</a></li>
-        <li><a href={route.changePassword.$link()}>Change Password</a></li>
-        <li><a href={route.profile.$link()}>Profile</a></li>
+        <li><Link to={route.$parent}>Go back</Link></li>
+        <li><Link to={route.billing} params={{ year: 2024 }}>Billing</Link></li>
+        <li><Link to={route.changePassword}>Change Password</Link></li>
+        <li><Link to={route.profile}>Profile</Link></li>
       </ul>
     </nav>
   </div>

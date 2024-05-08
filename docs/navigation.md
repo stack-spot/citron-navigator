@@ -4,7 +4,7 @@ through the view Props. Check the example below:
 
 ```tsx
 const Home = ({ route }: ViewPropsOf<'root'>) => (
-  <a href={route.account.$link()}>Go to account</a>
+  <Link to={route.account}>Go to account</Link>
 )
 ```
 
@@ -19,3 +19,37 @@ parameters with the current, pass a second object with options.
 Attention: this will use `history.pushState` or `history.replaceState`, just like the forward navigation.
 
 You can navigate to every route declared in your YAML file.
+
+## The Link component
+If you're using the default configuration, where `useHash = true` and don't intend to change this in the future, then you can ignore the
+Link component and use the native `a` tag from HTML instead. Example of navigation using the `a` tag:
+
+```tsx
+const Home = ({ route }: ViewPropsOf<'root'>) => (
+  <a href={route.account.$link()}>Go to account</a>
+)
+```
+
+Otherwise, if you don't use hashes in the URL or want to support both mechanisms (with and without hashes), then you should use the Link
+component to navigate with HTML anchors.
+
+If a simple `a` tag is used and `useHash` is false, the browser will reload the page in order to perform a navigation. We don't want this.
+`Link` prevents such reload.
+
+The Link component can be used in one of two ways:
+1. Passing a route and its parameters:
+```tsx
+const Albums = ({ route }: ViewPropsOf<'root.photoAlbums'>) => (
+  <Link to={route.album} params={{ albumId: 1 }}>Go to Album 1</Link>
+  <Link to={route.album} params={{ albumId: 2 }}>Go to Album 2</Link>
+)
+```
+2. Passing the `href` prop:
+```tsx
+const Albums = ({ route }: ViewPropsOf<'root.photoAlbums'>) => (
+  <Link href={route.album.$link({ albumId: 1 })}>Go to Album 1</Link>
+  <Link href={route.album.$link({ albumId: 2 })}>Go to Album 2</Link>
+)
+```
+
+A `Link` will always render an `a` tag in the HTML.

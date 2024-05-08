@@ -23,8 +23,8 @@ hard to force a developer to always use the "correct way of navigating" that we 
 times we'd have no type-check at all and it can become very easy to go to page that requires a variable without passing this variable.
 
 Another big problem we faced without typed-navigation was getting the search parameters in a page. How would the developer know what search
-parameters the page can receive, where are they defined? How does the programmer make changes to these parameters? What's the correct way to
-deserialize the string in the URL?
+parameters the page can receive, where are they defined? How does the programmer make changes to these parameters? What's the correct way
+to deserialize the string in the URL?
 
 It can become quite complex to manage url variables in a large application, we needed a library that would take care of this for us, so we
 created Citron Navigator.
@@ -119,8 +119,8 @@ const Album = ({ route, params: { albumId, limit, page } }: ViewPropsOf<'root.ph
   <p>Album {albumId}</p>
   <p>limit is {limit}</p>
   <p>page is {page}</p>
-  <p><a href={route.$parent.$link()}>Go back to albums</a></p>
-  <p><a href={route.photo.$link({ photoId: '001' })}>Check out this picture</a></p>
+  <p><Link to={route.$parent}>Go back to albums</Link></p>
+  <p><Link to={route.photo} params={{ photoId: '001' }}>Check out this picture</Link></p>
 )
 ```
 
@@ -128,6 +128,10 @@ Notice that, from "album", we can easily create a link to "photo" by passing onl
 
 When creating links or navigating to other pages, the type will always be checked by Typescript. In the example above, if we didn't pass
 `photoId` when creating a link to "photo", we'd get a type error and the code wouldn't build.
+
+Attention: we used the component [Link](docs/navigation.md#the-link-component)
+from Citron Navigator. This is necessary if you're not using hash based URLs (flag `--useHash=false`). If you are using hash based URLs
+(`/#/path`), then you can safely use a simple `a` tag instead. Example: `<a href={route.$parent.$link()}>Go back to albums</a>`.
 
 ## Installation
 We're going to use [PNPM](https://pnpm.io) throughout this documentation, but feel free to use either NPM or YARN.
@@ -177,19 +181,19 @@ It's a good idea to call `citron` before running the application locally or buil
 ```json
 {
   "scripts": {
-    "start": "citron && vite --port 3000",
+    "dev": "citron && vite",
     "build": "citron && tsc && vite build --mode production",
   }
 }
 ```
 
 ## Documentation
-- [Sample project](https://github.com/stack-spot/citron-navigator/blob/main/packages/sample)
-- [Configuration file (yaml)](https://github.com/stack-spot/citron-navigator/blob/main/docs/configuration-file.md)
-- [Route-based rendering](https://github.com/stack-spot/citron-navigator/blob/main/docs/route-based-rendering.md)
-- [Loading routes asynchronously](https://github.com/stack-spot/citron-navigator/blob/main/docs/async-route-rendering.md)
-- [Navigation](https://github.com/stack-spot/citron-navigator/blob/main/docs/navigation.md)
-- [The Route object](https://github.com/stack-spot/citron-navigator/blob/main/docs/route-object.md)
-- [Hooks](https://github.com/stack-spot/citron-navigator/blob/main/docs/hooks.md)
-- [Parameter serialization/deserialization](https://github.com/stack-spot/citron-navigator/blob/main/docs/serialization.md)
-- [Modular applications](https://github.com/stack-spot/citron-navigator/blob/main/docs/modular.md)
+- [Sample project](packages/sample)
+- [Configuration file (yaml)](docs/configuration-file.md)
+- [Route-based rendering](docs/route-based-rendering.md)
+- [Loading routes asynchronously](docs/async-route-rendering.md)
+- [Navigation](docs/navigation.md)
+- [The Route object](docs/route-object.md)
+- [Hooks](docs/hooks.md)
+- [Parameter serialization/deserialization](docs/serialization.md)
+- [Modular applications](docs/modular.md)

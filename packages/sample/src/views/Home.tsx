@@ -1,3 +1,4 @@
+import { Link } from '@stack-spot/citron-navigator'
 import { ViewPropsOf } from '../generated/navigation'
 
 export const Home = ({ route }: ViewPropsOf<'root'>) => (
@@ -5,8 +6,8 @@ export const Home = ({ route }: ViewPropsOf<'root'>) => (
     <h1>Home</h1>
     <nav>
       <ul>
-        <li><a href={route.account.$link()}>Account</a></li>
-        <li><a href={route.photoAlbums.$link()}>Albums</a></li>
+        <li><Link to={route.account}>Account</Link></li>
+        <li><Link to={route.photoAlbums}>Albums</Link></li>
       </ul>
     </nav>
   </div>
