@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useMemo } from 'react'
 import { CitronNavigator } from './CitronNavigator'
 import { AnyRoute, Route } from './Route'
 import { RequiredKeysOf } from './types'
@@ -12,38 +12,43 @@ type RouteProps<T extends AnyRoute | undefined> = { to?: T } & (T extends Route<
 type Props<T extends AnyRoute | undefined> = React.AnchorHTMLAttributes<HTMLAnchorElement> & RouteProps<T>
 
 interface LinkFn {
-  <T extends AnyRoute | undefined>(props: Props<T>): React.ReactNode,
+  <T extends AnyRoute | undefined>(props: Props<T>): React.ReactElement,
 }
 
 export const Link: LinkFn = (props) => {
-  const { to, params, href, children, target, ...anchorProps } = props as Props<Route<any, object, any>>
-  const actualHref = to ? to.$link(params) : href
-  const ref = useRef<HTMLAnchorElement>(null)
-  
-  useEffect(() => {
+  const { to, params, href, children, target, onClick, onKeyDown, ...anchorProps } = props as Props<Route<any, object, any>>
+  const { actualHref, shouldActLikeSimpleAnchor } = useMemo(() => {
+    const actualHref = to ? to.$link(params) : href
     const isHashUrl = actualHref && /^\/?#/.test(actualHref)
-    if (!ref.current || isHashUrl || (target && target != '_self')) return
+    const isAbsoluteUrl = actualHref && /^\w+:\/\//.test(actualHref)
+    const shouldActLikeSimpleAnchor = !actualHref || isHashUrl || (target && target != '_self') || isAbsoluteUrl
+    return { actualHref, shouldActLikeSimpleAnchor }
+  }, [to?.$key, href, params])
 
-    function navigate(event: Event) {
-      event.preventDefault()
-      history.pushState(null, '', actualHref)
-      // since we called event.preventDefault(), we now must manually trigger a navigation update
-      CitronNavigator.instance?.updateRoute?.()
-    }
+  if (shouldActLikeSimpleAnchor) {
+    return <a href={actualHref} target={target} onClick={onClick} onKeyDown={onKeyDown} {...anchorProps}>{children}</a>
+  }
 
-    function onKeyPress(event: KeyboardEvent) {
-      if (event.key != 'Enter') return
-      navigate(event)
-    }
+  function navigate(event: React.UIEvent) {
+    event.preventDefault()
+    history.pushState(null, '', actualHref)
+    // since we called event.preventDefault(), we now must manually trigger a navigation update
+    CitronNavigator.instance?.updateRoute?.()
+  }
 
-    ref.current.addEventListener('click', navigate)
-    ref.current.addEventListener('keydown', onKeyPress)
+  function handleNavigationClick(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) {
+    navigate(event)
+    onClick?.(event)
+  }
 
-    return () => {
-      ref.current?.removeEventListener('click', navigate)
-      ref.current?.removeEventListener('keydown', onKeyPress)
-    }
-  }, [actualHref, ref.current])
+  function handleNavigationKeyDown(event: React.KeyboardEvent<HTMLAnchorElement>) {
+    if (event.key === 'Enter') navigate(event)
+    onKeyDown?.(event)
+  }
   
-  return <a ref={ref} href={actualHref} target={target} {...anchorProps}>{children}</a>
+  return (
+    <a href={actualHref} target={target} onClick={handleNavigationClick} onKeyDown={handleNavigationKeyDown} {...anchorProps}>
+      {children}
+    </a>
+  )
 }
