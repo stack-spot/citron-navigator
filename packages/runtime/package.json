@@ -38,6 +38,9 @@
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "tsc-esm-fix": "^2.20.26",
-    "typescript": "^5.2.2"
-  }
+    "typescript": "^5.2.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "dependencies": {}
 }
