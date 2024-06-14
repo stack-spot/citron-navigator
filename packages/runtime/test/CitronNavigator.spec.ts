@@ -1,5 +1,9 @@
 import { CitronNavigator } from '../src/CitronNavigator'
-import { AccountRoute, AlternativeRootRoute, ExtendedAccountRoute, RootRoute, SettingsRoute, StudiosRoute, WorkspacesRoute } from './routes'
+import { NavigationSetupError } from '../src/errors'
+import {
+  AccountRoute, AlternativeRootRoute, AlternativeRootRouteWithPathClash, AlternativeRootRouteWithStudios, ExtendedAccountRoute, RootRoute,
+  SettingsRoute, StudiosRoute, WorkspacesRoute,
+} from './routes'
 import { delay, expectToFail, mockConsoleLogs, mockLocation, testHash } from './utils'
 
 describe('Citron Navigator', () => {
@@ -39,7 +43,7 @@ describe('Citron Navigator', () => {
     expect(window.addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function))
   })
 
-  it('should update navigation tree (replacing a branch)', () => {
+  it('should update navigation tree (merging into a branch)', () => {
     const navigator = CitronNavigator.create(new RootRoute())
     const root = (navigator as any).root
     expect(root.account.settings).toBeUndefined()
@@ -50,7 +54,7 @@ describe('Citron Navigator', () => {
     expect(root.studios).toBeInstanceOf(StudiosRoute)
   })
 
-  it('should update navigation tree (replacing the root)', () => {
+  it('should update navigation tree (merging into the root)', () => {
     const navigator = CitronNavigator.create(new RootRoute())
     let root = (navigator as any).root
     expect(root.workspaces).toBeUndefined()
@@ -59,8 +63,8 @@ describe('Citron Navigator', () => {
     expect(root).not.toBeInstanceOf(RootRoute)
     expect(root).toBeInstanceOf(AlternativeRootRoute)
     expect(root.workspaces).toBeInstanceOf(WorkspacesRoute)
-    expect(root.account).toBeUndefined()
-    expect(root.studios).toBeUndefined()
+    expect(root.account).toBeInstanceOf(AccountRoute)
+    expect(root.studios).toBeInstanceOf(StudiosRoute)
   })
 
   it("should fail to update navigation tree if anchor doesn't exist", () => {
@@ -69,9 +73,35 @@ describe('Citron Navigator', () => {
       navigator.updateNavigationTree(new ExtendedAccountRoute(), 'root.inexistent')
       expectToFail()
     } catch (error: any) {
-      expect(error.message).toMatch(/^Navigation error:/)
+      expect(error).toBeInstanceOf(NavigationSetupError)
     }
   })
+
+  it(
+    'should fail to update navigation tree if the new branch has a path that already exists in the current tree and is not a wildcard',
+    () => {
+      try {
+        const navigator = CitronNavigator.create(new RootRoute())
+        navigator.updateNavigationTree(new AlternativeRootRouteWithPathClash(), 'root')
+        expectToFail()
+      } catch (error) {
+        expect(error).toBeInstanceOf(NavigationSetupError)
+      }
+    },
+  )
+
+  it(
+    'should fail to update navigation tree if the new branch has a key that already exists in the current tree with a non-wildcard path',
+    () => {
+      try {
+        const navigator = CitronNavigator.create(new RootRoute())
+        navigator.updateNavigationTree(new AlternativeRootRouteWithStudios(), 'root')
+        expectToFail()
+      } catch (error) {
+        expect(error).toBeInstanceOf(NavigationSetupError)
+      }
+    },
+  )
 
   describe('should compute the path of a url', testHash(({ p, navigator }) => {
     const path = navigator.getPath(new URL(`https://www.stackspot.com${p('/pt/ai-assistente')}`))

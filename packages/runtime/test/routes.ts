@@ -73,6 +73,22 @@ export class AlternativeRootRoute extends Route<undefined, RouteParams['root']> 
   workspaces = new WorkspacesRoute(this)
 }
 
+export class AlternativeRootRouteWithStudios extends Route<undefined, RouteParams['root']> {
+  constructor() {
+    super('root', '/', undefined, {})
+  }
+
+  studios = new AlternativeStudiosRoute(this)
+}
+
+export class AlternativeRootRouteWithPathClash extends Route<undefined, RouteParams['root']> {
+  constructor() {
+    super('root', '/', undefined, {})
+  }
+
+  foo = new StudiosPathClashRoute(this)
+}
+
 export class WorkspacesRoute extends Route<AlternativeRootRoute, void> {
   constructor(parent: AlternativeRootRoute) {
     super('root.workspaces', '/workspaces/*', parent, {})
@@ -159,6 +175,18 @@ export class StudiosRoute extends Route<RootRoute, RouteParams['root.studios']> 
   }
 
   studio = new StudioRoute(this)
+}
+
+export class AlternativeStudiosRoute extends Route<AlternativeRootRouteWithStudios, RouteParams['root.studios']> {
+  constructor(parent: AlternativeRootRouteWithStudios) {
+    super('root.studios', '/foo', parent, { like: 'string', limit: 'number' })
+  }
+}
+
+export class StudiosPathClashRoute extends Route<AlternativeRootRouteWithPathClash, RouteParams['root.studios']> {
+  constructor(parent: AlternativeRootRouteWithPathClash) {
+    super('root.foo', '/studios', parent, { like: 'string', limit: 'number' })
+  }
 }
 
 class StudioRoute extends Route<StudiosRoute, RouteParams['root.studios.studio']> {

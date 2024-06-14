@@ -1,5 +1,5 @@
 import { AnyRoute, Route } from './Route'
-import { NavigationError } from './errors'
+import { NavigationError, NavigationSetupError } from './errors'
 import { removeElementFromArray, splitPath } from './utils'
 
 type NotFoundListener = (path: string) => void
@@ -44,11 +44,11 @@ export class CitronNavigator {
   }
 
   /**
-   * Updates the navigation tree by replacing a node for another.
+   * Updates the navigation tree by merging a node with another.
    * 
    * This is used by modular navigation. A module can load more routes into the tree.
-   * @param route the node to enter the tree.
-   * @param keyToReplace the key of the node to be replaces.
+   * @param route the node to be merged into the tree.
+   * @param keyToReplace the key of the node to be merged.
    */
   updateNavigationTree(route: Route<any, any, any>, keyToReplace: string) {
     let oldRoute: any = this.root
@@ -56,7 +56,9 @@ export class CitronNavigator {
     const keyParts = reminderKey.split('.')
     if (reminderKey) keyParts.forEach(key => oldRoute = oldRoute?.[key])
     if (!oldRoute) {
-      throw new Error(`Navigation error: cannot update navigation tree at route with key "${keyToReplace}" because the key doesn't exist.`)
+      throw new NavigationSetupError(
+        `Navigation error: cannot update navigation tree at route with key "${keyToReplace}" because the key doesn't exist.`,
+      )
     }
     if (oldRoute === this.root) {
       this.root = route
@@ -64,6 +66,31 @@ export class CitronNavigator {
       route.$parent = oldRoute.$parent
       oldRoute.$parent[keyParts[keyParts.length - 1]] = route
     }
+    // validation: check for route clashes
+    const oldPaths = Object.keys(oldRoute).reduce<string[]>((result, key) => {
+      if (key.startsWith('$')) return result
+      const value = oldRoute[key as keyof typeof oldRoute]
+      return !(value instanceof Route) || value.$path.endsWith('/*') ? result : [...result, value.$path]
+    }, [])
+    Object.keys(route).forEach((key) => {
+      const value = route[key as keyof typeof route]
+      if (key.startsWith('$') || !(value instanceof Route)) return
+      if (oldPaths.includes(value.$path)) {
+        throw new NavigationSetupError(
+          `Error while merging modular route with key "${keyToReplace}". Path "${value.$path}" is already defined in parent. Only paths with wildcard can be replaced.`,
+        )
+      }
+      if (key in oldRoute && oldRoute[key] instanceof Route && !oldRoute[key].$path.endsWith('/*')) {
+        throw new NavigationSetupError(
+          `Error while merging modular route, key "${keyToReplace}" is already defined in parent with a non-wildcard path.`,
+        )
+      }
+    })
+    // copy all the child routes that existed in the old route, but don't exist in the new one (merge):
+    Object.keys(oldRoute).forEach((key) => {
+      // @ts-ignore
+      if (!key.startsWith('$') && !(key in route) && oldRoute[key] instanceof Route) route[key] = oldRoute[key]
+    })
     this.updateRoute()
   }
 
