@@ -161,8 +161,8 @@ export class Codegen {
         : { route: ContextualizedRoute<RouteByKey[T], RouteParams[T]>, params: RouteParams[T] }
 
       interface NavigationContext {
-        when: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
-        whenSubrouteOf: <T extends keyof RouteParams>(key: T, handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+        when: <T extends keyof RouteParams>(key: T | T[], handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
+        whenSubrouteOf: <T extends keyof RouteParams>(key: T | T[], handler: (props: ViewPropsOf<T>) => VoidOrPromise) => NavigationContext,
         otherwise: (handler: () => VoidOrPromise) => NavigationContext,
         whenNotFound: (handler: (path: string) => VoidOrPromise) => NavigationContext,
       }
@@ -170,11 +170,13 @@ export class Codegen {
       function buildContext(clauses: NavigationClauses) {
         const context: NavigationContext = {
           when: (key, handler) => {
-            clauses.when[key] = handler
+            const keys = Array.isArray(key) ? key : [key]
+            keys.forEach(k => clauses.when[k] = handler)
             return context
           },
           whenSubrouteOf: (key, handler) => {
-            clauses.whenSubrouteOf.push({ key, handler })
+            const keys = Array.isArray(key) ? key : [key]
+            keys.forEach(k => clauses.whenSubrouteOf.push({ key: k, handler }))
             return context
           },
           otherwise: (handler) => {

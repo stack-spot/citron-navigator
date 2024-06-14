@@ -41,7 +41,10 @@ interface GoOptions {
 export type AnyRoute = Route<any, any, any>
 
 /**
- * A Route of the Citron Navigator. The root route, i.e. the route that has no parent will be Navigation Tree.
+ * A Route of the Citron Navigator. The root route, i.e. the route that has no parent will be the Navigation Tree.
+ * 
+ * Routes are equal if they have the same key. To test route equality, use `routeA.equals(routeB)`, do not use same-value-zero equality
+ * (`routeA === routeB`).
  * 
  * Every property of this class not prefixed with "$" is a child route.
  */
@@ -143,6 +146,15 @@ export abstract class Route<
    */
   $is(key: RouteKey): boolean {
     return this.$key === key
+  }
+
+  /**
+   * Checks if the route passed as parameter is equivalent to the this route.
+   * @param route the route to compare.
+   * @returns true if it's  equivalent, false otherwise.
+   */
+  $equals(route: AnyRoute) {
+    return this.$key === route.$key
   }
 
   /**
