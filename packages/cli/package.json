@@ -8,6 +8,7 @@
     "build": "rimraf dist && tsc --project tsconfig.build.json --declaration",
     "test": "jest",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "copy-readme": "ts-node ../../scripts/copy-readme.ts",
     "prepublishOnly": "pnpm copy-readme"
   },
   "bin": {
