@@ -64,7 +64,7 @@ export const root = new RootRoute()
 if (CitronNavigator.instance) {
     CitronNavigator.instance.updateNavigationTree(root, 'root.studios')
 } else {
-    CitronNavigator.create(root as unknown as Route)
+    CitronNavigator.create(root as unknown as Route, true)
 }
 export const navigator = CitronNavigator.instance!
 
