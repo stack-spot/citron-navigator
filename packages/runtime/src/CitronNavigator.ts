@@ -88,8 +88,10 @@ export class CitronNavigator {
     })
     // copy all the child routes that existed in the old route, but don't exist in the new one (merge):
     Object.keys(oldRoute).forEach((key) => {
-      // @ts-ignore
-      if (!key.startsWith('$') && !(key in route) && oldRoute[key] instanceof Route) route[key] = oldRoute[key]
+      if (!key.startsWith('$') && !(key in route) && oldRoute[key] instanceof Route) {
+        oldRoute[key].$parent = route
+        route[key as keyof typeof route] = oldRoute[key]
+      }
     })
     this.updateRoute()
   }

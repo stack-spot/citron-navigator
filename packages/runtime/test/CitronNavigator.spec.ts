@@ -63,8 +63,11 @@ describe('Citron Navigator', () => {
     expect(root).not.toBeInstanceOf(RootRoute)
     expect(root).toBeInstanceOf(AlternativeRootRoute)
     expect(root.workspaces).toBeInstanceOf(WorkspacesRoute)
+    expect(root.workspaces.$parent).toBeInstanceOf(AlternativeRootRoute)
     expect(root.account).toBeInstanceOf(AccountRoute)
+    expect(root.account.$parent).toBeInstanceOf(AlternativeRootRoute)
     expect(root.studios).toBeInstanceOf(StudiosRoute)
+    expect(root.studios.$parent).toBeInstanceOf(AlternativeRootRoute)
   })
 
   it("should fail to update navigation tree if anchor doesn't exist", () => {
