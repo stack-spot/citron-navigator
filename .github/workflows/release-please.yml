@@ -7,5 +7,11 @@ name: release-please
 
 jobs:
   release-please:
-    uses: stack-spot/portal-workspace/.github/workflows/release-please.yml@main
-    secrets: inherit
+    runs-on: engineering-runners-prd
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GIT_ORG_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

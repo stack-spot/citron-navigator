@@ -4,4 +4,11 @@ on: pull_request
 
 jobs:
   check-branch:
-    uses: stack-spot/portal-workspace/.github/workflows/check-branch.yml@main
+    runs-on:
+      - engineering-runners-dev
+    steps:
+      - uses: actions/checkout@v4
+      - run: node -v
+      - run: sudo corepack enable
+      - run: pnpm install
+      - run: pnpm check-branch

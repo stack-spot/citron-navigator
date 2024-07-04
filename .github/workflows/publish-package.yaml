@@ -8,5 +8,25 @@ name: publish-package
 
 jobs:
   publish-package:
-    uses: stack-spot/portal-workspace/.github/workflows/publish-npm.yml@main
-    secrets: inherit
+    runs-on: engineering-runners-prd
+    steps:
+      - uses: actions/checkout@v4
+      # Setup .npmrc file to publish to npm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+      - run: node -v
+      - run: sudo corepack enable
+      - run: pnpm install
+      - run: pnpm build
+      - id: get-package
+        run: |
+          package=$(echo ${{github.ref_name}} | cut -d'@' -f1)
+          dirname=$(find . -path ./node_modules -prune -o -name 'package.json' -exec grep -q -i "\"name\": \"@stack-spot/${package}\"" {} \; -print | rev | cut -d'/' -f2 | rev)
+          echo "dirname=$dirname" >> "$GITHUB_OUTPUT"
+      - run: |
+          cd packages/${{steps.get-package.outputs.dirname}}
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
