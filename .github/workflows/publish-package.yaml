@@ -8,7 +8,7 @@ name: publish-package
 
 jobs:
   publish-package:
-    runs-on: engineering-runners-prd
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       # Setup .npmrc file to publish to npm

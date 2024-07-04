@@ -5,7 +5,7 @@ on: pull_request
 jobs:
   check-branch:
     runs-on:
-      - engineering-runners-dev
+      - ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: node -v
