@@ -1,0 +1,7 @@
+name: Check Branch
+
+on: pull_request
+
+jobs:
+  check-branch:
+    uses: stack-spot/portal-workspace/.github/workflows/check-branch.yml@main

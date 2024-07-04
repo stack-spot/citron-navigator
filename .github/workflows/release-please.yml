@@ -1,0 +1,11 @@
+on:
+  push:
+    branches:
+      - main
+
+name: release-please
+
+jobs:
+  release-please:
+    uses: stack-spot/portal-workspace/.github/workflows/release-please.yml@main
+    secrets: inherit

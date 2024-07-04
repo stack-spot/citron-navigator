@@ -1,0 +1,12 @@
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+name: publish-package
+
+jobs:
+  publish-package:
+    uses: stack-spot/portal-workspace/.github/workflows/publish-npm.yml@main
+    secrets: inherit
