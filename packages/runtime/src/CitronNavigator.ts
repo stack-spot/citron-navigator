@@ -44,6 +44,28 @@ export class CitronNavigator {
   }
 
   /**
+   * Copies every child route of `source` to `target` if the child route of `source` doesn't exist in `target`.
+   * 
+   * If a child of `source` exists in `target`, but it's path includes a wildcard (/*), we recursively copy its children to the same route
+   * in `target`.
+   * @param source the route to have its children copied.
+   * @param target the route to copy the children to.
+   */
+  private copy(source: AnyRoute, target: AnyRoute) {
+    Object.keys(source).forEach((key) => {
+      const k = key as keyof AnyRoute
+      if (!k.startsWith('$') && source[k] instanceof Route) {
+        if (!(k in target)) {
+          source[k].$parent = target
+          target[k] = source[k]
+        } else if (source[k].$path.endsWith('/*')) {
+          this.copy(source[k], target[k])
+        }
+      }
+    })
+  }
+
+  /**
    * Updates the navigation tree by merging a node with another.
    * 
    * This is used by modular navigation. A module can load more routes into the tree.
@@ -86,13 +108,8 @@ export class CitronNavigator {
         )
       }
     })
-    // copy all the child routes that existed in the old route, but don't exist in the new one (merge):
-    Object.keys(oldRoute).forEach((key) => {
-      if (!key.startsWith('$') && !(key in route) && oldRoute[key] instanceof Route) {
-        oldRoute[key].$parent = route
-        route[key as keyof typeof route] = oldRoute[key]
-      }
-    })
+    
+    this.copy(oldRoute, route)
     this.updateRoute()
   }
 

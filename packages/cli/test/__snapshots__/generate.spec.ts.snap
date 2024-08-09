@@ -210,6 +210,8 @@ interface RouteParams {
     'root': void,
     'root.account': void,
     'root.studios': { search?: string },
+    'root.studios.studio': { studioId: string },
+    'root.studios.studio.stacks': { studioId: string },
     'root.download': { platform?: 'mac' | 'debian' | 'windows' }
 }
 
@@ -254,6 +256,34 @@ class StudiosRoute extends Route<RootRoute, RouteParams['root.studios']> {
         )
     }
 
+    studio = new StudioRoute(this)
+}
+
+
+
+class StudioRoute extends Route<StudiosRoute, RouteParams['root.studios.studio']> {
+    constructor(parent: StudiosRoute) {
+        super(
+            'root.studios.studio',
+            '/studios/{studioId}/*', parent,
+            { studioId: 'string' },
+        )
+    }
+
+    stacks = new StacksRoute(this)
+}
+
+
+
+class StacksRoute extends Route<StudioRoute, RouteParams['root.studios.studio.stacks']> {
+    constructor(parent: StudioRoute) {
+        super(
+            'root.studios.studio.stacks',
+            '/studios/{studioId}/stacks/*', parent,
+            { studioId: 'string' },
+        )
+    }
+
 
 }
 
@@ -280,6 +310,8 @@ const routeByKey: RouteByKey = {
     'root': root,
     'root.account': root.account,
     'root.studios': root.studios,
+    'root.studios.studio': root.studios.studio,
+    'root.studios.studio.stacks': root.studios.studio.stacks,
     'root.download': root.download
 }
 
@@ -289,6 +321,8 @@ interface RouteByKey {
     'root': RootRoute,
     'root.account': AccountRoute,
     'root.studios': StudiosRoute,
+    'root.studios.studio': StudioRoute,
+    'root.studios.studio.stacks': StacksRoute,
     'root.download': DownloadRoute
 }
 
