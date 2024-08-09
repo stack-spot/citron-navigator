@@ -62,7 +62,7 @@ export class Codegen {
     const name = this.keyToClassName.get(route.localKey)
     const parentName = route.parent ? this.keyToClassName.get(route.parent.localKey) : 'undefined'
     const params = route.parent ? `parent: ${parentName}` : ''
-    const path = route.path.map(p => typeof p === 'string' ? p : `{${p.name}}`).join('/')
+    const path = route.path.map(p => typeof p === 'string' ? p : `{${p.name}}`).join('/').replace(/\/\*\//g, '/')
     return `
       class ${name} extends Route<${parentName}, RouteParams['${route.localKey}']> {
         constructor(${params}) {

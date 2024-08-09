@@ -2,5 +2,7 @@
   + account (/account/*):
   + studios (/studios/*):
     search: string
+    + studio (/{studioId}/*):
+      + stacks (/stacks/*):
   + download (/download):
     platform: string ('mac' | 'debian' | 'windows')
