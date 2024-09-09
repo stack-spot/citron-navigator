@@ -143,14 +143,20 @@ export class CitronNavigator {
     }, [])
   }
 
-  private findRouteByPath(route: Route, path: string): Route | undefined {
+  private findRouteByPath(route: Route, path: string, lastMatch?: Route): Route | undefined {
     switch (route.$match(path)) {
-      case 'exact': return route
+      case 'exact':
+        return route.$path.endsWith('*')
+          ? this.childrenOf(route).reduce<Route | undefined>(
+            (result, child) => result ?? this.findRouteByPath(child, path, route),
+            undefined,
+          ) ?? route
+          : route
       case 'subroute':
         return this.childrenOf(route).reduce<Route | undefined>(
           (result, child) => result ?? this.findRouteByPath(child, path),
           undefined,
-        ) ?? (route.$path.endsWith('*') ? route : undefined)
+        ) ?? (route.$path.endsWith('*') ? route : lastMatch)
     }
   }
 

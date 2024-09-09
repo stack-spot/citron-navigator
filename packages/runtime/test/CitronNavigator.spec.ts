@@ -130,6 +130,24 @@ describe('Citron Navigator', () => {
     expect(navigator.currentParams).toEqual({ studioId: 'studio1', stackId: 'stack1', starterId: 'starter1', str: 'test' })
   }))
 
+  describe('should use deep wildcard instead of shallow', testHash({
+    routeFactory: () => new AlternativeRootRoute(),
+    testFn: ({ p, navigator, route: root }) => {
+      mockLocation(`https://www.stackspot.com${p('/workspaces/a/stacks')}`)
+      navigator.updateRoute()
+      expect(navigator.currentRoute).toBe(root.workspaces.workspace.stacks)
+      expect(navigator.currentParams).toEqual({ workspaceId: 'a' })
+      mockLocation(`https://www.stackspot.com${p('/workspaces/a')}`)
+      navigator.updateRoute()
+      expect(navigator.currentRoute).toBe(root.workspaces.workspace)
+      expect(navigator.currentParams).toEqual({ workspaceId: 'a' })
+      mockLocation(`https://www.stackspot.com${p('/workspaces')}`)
+      navigator.updateRoute()
+      expect(navigator.currentRoute).toBe(root.workspaces)
+      expect(navigator.currentParams).toEqual({})
+    },
+  }))
+
   describe('should deserialize route parameters', testHash({
     locationFactory: (p) => {
       const urlParams = [
