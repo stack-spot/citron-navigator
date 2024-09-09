@@ -93,6 +93,22 @@ export class WorkspacesRoute extends Route<AlternativeRootRoute, void> {
   constructor(parent: AlternativeRootRoute) {
     super('root.workspaces', '/workspaces/*', parent, {})
   }
+
+  workspace = new WorkspaceRoute(this)
+}
+
+export class WorkspaceRoute extends Route<WorkspacesRoute, { workspaceId: string }> {
+  constructor(parent: WorkspacesRoute) {
+    super('root.workspaces.workspace', '/workspaces/{workspaceId}/*', parent, { workspaceId: 'string' })
+  }
+
+  stacks = new WorkspaceStacksRoute(this)
+}
+
+export class WorkspaceStacksRoute extends Route<WorkspaceRoute, void> {
+  constructor(parent: WorkspaceRoute) {
+    super('root.workspaces.workspace.stacks', '/workspaces/{workspaceId}/stacks/*', parent, { workspaceId: 'string' })
+  }
 }
 
 export class AccountRoute extends Route<RootRoute, RouteParams['root.account']> {
