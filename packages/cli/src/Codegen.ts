@@ -199,7 +199,7 @@ export class Codegen {
 
       export function useNavigationContext(navigationHandler: (context: NavigationContext) => void, deps?: any[]) {  
         const queue = useRef<(() => VoidOrPromise)[]>([])
-        const consumer = useRef<Promise<void> | undefined>()
+        const consumer = useRef<Promise<void> | undefined>(undefined)
 
         const runEveryHandlerInQueue = useCallback(async () => {
           while (queue.current.length) {
