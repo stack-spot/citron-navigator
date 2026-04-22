@@ -24,7 +24,8 @@
     "overrides": {
       "flatted": "3.4.2",
       "minimatch": "^10.2.4",
-      "picomatch": ">=4.0.4"
+      "picomatch": ">=4.0.4",
+      "cross-spawn": "7.0.5"
     }
   },
   "packageManager": "pnpm@9.2.0"
