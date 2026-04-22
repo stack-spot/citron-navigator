@@ -20,5 +20,12 @@
     "node": ">=18",
     "pnpm": ">=8"
   },
+  "pnpm": {
+    "overrides": {
+      "flatted": "3.4.2",
+      "minimatch": "^10.2.4",
+      "picomatch": ">=4.0.4"
+    }
+  },
   "packageManager": "pnpm@9.2.0"
 }
