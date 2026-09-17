@@ -8,7 +8,7 @@ on:
 
 jobs:
   auto-fix-notify:
-    uses: ZupIT/dx-workflows/.github/workflows/reusable-auto-fix-vulnerabilities-pr.yml@v0
+    uses: ZupIT/dx-workflows/.github/workflows/reusable-auto-fix-vulnerabilities-pr.yml@fix/node-package-manager-detection
     with:
       runner: runner-self-hosted-portal-prd
     secrets:
