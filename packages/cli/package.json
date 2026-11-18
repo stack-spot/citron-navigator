@@ -15,6 +15,8 @@
     "citron": "./dist/run.js"
   },
   "dependencies": {
+    "glob": "13.0.7",
+    "minimatch": "^11.0.1",
     "typescript-formatter": "^7.2.2",
     "yaml": "^2.3.4",
     "yargs": "^17.7.3"
